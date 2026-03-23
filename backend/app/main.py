@@ -17,7 +17,9 @@ from app.api.v1.community.router import router as community_router
 from app.api.v1.token.router import router as token_router   # ← add
 from app.db.session import engine
 from app.db.base import Base
-import app.db.models                           # ← table create ke liye
+import app.db.models       
+from app.seed.router import router as seed_router  # (agar new file banaya)
+
 
 
 # APP INIT
@@ -43,6 +45,7 @@ app.include_router(dashboard_router, prefix="/api/v1")
 app.include_router(community_router, prefix="/api/v1")
 app.include_router(token_router,     prefix="/api/v1")        # ← add
 app.include_router(skills_router)    # prefix already /api/v1/learn
+app.include_router(seed_router, prefix="/api/v1")                    # ← table create ke liye
 
 
 # HEALTH CHECK
