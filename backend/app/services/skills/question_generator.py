@@ -99,7 +99,6 @@ def get_or_generate_questions(
                 options=q["options"],
                 correct_index=int(q["correct_index"]),
                 explanation=q.get("explanation", ""),
-                difficulty=topic.level,
             )
             db.add(obj)
             saved.append(obj)

@@ -37,6 +37,7 @@ def start_interview(
         role=jd_context["role_title"],
         level=level,
         jd_id=jd_id,
+        user_id=user_id   ,
     )
     db.add(session)
     db.commit()
@@ -86,15 +87,11 @@ def next_question(
         (m.content for m in reversed(history) if m.role == "assistant"),
         "Previous question"
     )
-
-    # Score karo — token track karo
     score = score_answer(
         skill=jd_context["role_title"],
         question=last_question,
         answer=answer,
-        db=db,           # ← token record ke liye
-        user_id=user_id,
-        source="interview",
+        #source="interview",
     )
     overall_score = score["depth"]
 

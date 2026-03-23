@@ -19,8 +19,12 @@ def get_user_dashboard_stats(user_id: int, db: Session = Depends(get_db)):
         Resume.user_id == user_id
     ).count()
 
-    # JobDescription mein user_id column nahi hai — skip karo ya 0 return karo
-    total_jds = 0
+    jdss = (
+    db.query(JobDescription)
+    .filter(JobDescription.user_id == user_id).distinct()
+    .all())
+
+    total_jds = len(jdss)
 
     total_interviews = db.query(InterviewSession).filter(
         InterviewSession.user_id == user_id

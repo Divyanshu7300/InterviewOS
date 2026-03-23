@@ -78,7 +78,7 @@ def process_jd(db: Session, data: JDInput):
     cleaned_jd = clean_jd(data.jd_text)
 
     # Step 2: Save JD
-    jd = JobDescription(text=cleaned_jd)
+    jd = JobDescription(text=cleaned_jd,user_id=data.user_id)
     db.add(jd)
     db.commit()
     db.refresh(jd)

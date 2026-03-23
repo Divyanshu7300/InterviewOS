@@ -31,3 +31,4 @@ openai>=1.12.0
 
 # Env Management
 python-dotenv>=1.0.1
+groq
