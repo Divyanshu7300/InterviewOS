@@ -11,10 +11,10 @@ function ScoreBar({ label, value, max = 100 }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-1.5">
-        <span className="text-xs" style={{ color: "var(--text-muted)" }}>{label}</span>
-        <span className="text-xs font-mono font-semibold" style={{ color }}>{value}/{max}</span>
+        <span className="text-base font-medium text-[var(--text-primary)]">{label}</span>
+        <span className="text-base font-mono font-semibold" style={{ color }}>{value}/{max}</span>
       </div>
-      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "var(--border)" }}>
+      <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--border)" }}>
         <div
           className="h-full rounded-full transition-all duration-700"
           style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${color}80, ${color})` }}
@@ -32,7 +32,7 @@ function Tag({ label, color }) {
   };
   const s = styles[color] || styles.green;
   return (
-    <span className={`text-xs px-2.5 py-1 rounded-full border ${s.bg} ${s.border} ${s.text}`}>
+    <span className={`rounded-full border px-3 py-1.5 text-sm font-medium ${s.bg} ${s.border} ${s.text}`}>
       {label}
     </span>
   );
@@ -91,79 +91,85 @@ export default function ResumeAnalyzer() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto flex flex-col gap-8">
+    <div className="min-h-screen bg-[var(--bg-primary)] px-4 pb-24 pt-[80px] sm:px-5">
+      <div className="mx-auto flex max-w-5xl flex-col gap-8 sm:gap-10 sm:px-1">
 
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-[28px] font-extrabold tracking-tight"
-            style={{ color: "var(--text-primary)" }}>
+      <div className="flex flex-col gap-4 pt-1 sm:flex-row sm:items-center sm:justify-between">
+        <div className="max-w-2xl">
+          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[var(--text-primary)]">
+            Resume Analysis
+          </p>
+          <h1 className="mt-2 text-[32px] font-extrabold leading-[1.04] tracking-tight text-[var(--text-primary)] sm:text-[42px]">
             Resume Analyzer
           </h1>
-          <p className="text-sm font-light mt-1" style={{ color: "var(--text-muted)" }}>
+          <p className="mt-3 text-base leading-7 text-[var(--text-primary)] sm:text-[17px]">
             Upload your resume to compare with a job description.
           </p>
         </div>
         {result && (
           <button
             onClick={reset}
-            className="text-xs px-3 py-1.5 rounded-lg border transition-all"
-            style={{ color: "var(--text-muted)", borderColor: "var(--border)", background: "var(--bg-card)" }}
+            className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2.5 text-sm font-medium text-[var(--text-primary)] transition-all"
           >
             ← New Analysis
           </button>
         )}
       </div>
 
-      {/* Error */}
-      {error && (
-        <div className="rounded-xl px-4 py-3 text-sm border flex items-center gap-2"
-          style={{ background: "rgba(244,63,94,0.08)", color: "#fb7185", borderColor: "rgba(244,63,94,0.18)" }}>
-          ⚠ {error}
-        </div>
-      )}
+        {/* Error */}
+        {error && (
+          <div className="flex items-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-400">
+            ⚠ {error}
+          </div>
+        )}
 
-      {/* Input section */}
-      {!result && (
-        <div className="rounded-2xl p-6 flex flex-col gap-6 border"
-          style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}>
+        {/* Input section */}
+        {!result && (
+          <div className="flex flex-col gap-8 rounded-[32px] border border-[var(--border)] bg-[var(--bg-card)] p-5 sm:p-7">
 
           {/* Step 1 */}
           <div>
-            <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-3"
-              style={{ color: "var(--text-muted)" }}>
-              Step 1 — Select Job Description
+            <p className="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--text-primary)]">
+              Step 1
             </p>
+            <h2 className="mb-4 text-[28px] font-bold tracking-tight text-[var(--text-primary)] sm:text-[30px]">
+              Select a Job Description
+            </h2>
             <JDSelector
               selectedId={jdId}
               onSelect={setJdId}
-              placeholder="Choose a JD to compare against..."
+              placeholder="Choose a JD to compare against."
+              title="Match your resume against the exact role"
+              description="Use the same role card here and in Interview Setup so your resume review and practice interview stay in sync."
             />
           </div>
 
           {/* Step 2 */}
           <div>
-            <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-3"
-              style={{ color: "var(--text-muted)" }}>
-              Step 2 — Upload Resume (PDF)
+            <p className="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--text-primary)]">
+              Step 2
             </p>
+            <h2 className="mb-4 text-[28px] font-bold tracking-tight text-[var(--text-primary)] sm:text-[30px]">
+              Upload Your Resume
+            </h2>
 
             <div
               onDragOver={e => { e.preventDefault(); setDragOver(true); }}
               onDragLeave={() => setDragOver(false)}
               onDrop={handleDrop}
               onClick={() => document.getElementById("resume-input").click()}
-              className="rounded-xl border transition-all cursor-pointer flex flex-col items-center justify-center gap-3 py-10"
+              className="flex cursor-pointer flex-col items-center justify-center gap-4 rounded-[26px] border px-4 py-12 transition-all sm:px-6"
               style={{
                 borderColor: dragOver
-                  ? "rgba(124,106,247,0.5)"
+                  ? "var(--text-primary)"
                   : file
-                  ? "rgba(74,222,128,0.3)"
+                  ? "var(--text-primary)"
                   : "var(--border)",
                 background: dragOver
-                  ? "rgba(124,106,247,0.04)"
+                  ? "var(--bg-primary)"
                   : file
-                  ? "rgba(74,222,128,0.04)"
+                  ? "var(--bg-primary)"
                   : "var(--bg-secondary)",
               }}
             >
@@ -174,22 +180,22 @@ export default function ResumeAnalyzer() {
                 className="hidden"
                 onChange={e => { const f = e.target.files[0]; if (f) setFile(f); }}
               />
-              <div className="text-3xl">{file ? "✅" : "📄"}</div>
+              <div className="text-4xl">{file ? "✅" : "📄"}</div>
               {file ? (
                 <div className="text-center">
-                  <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                  <p className="text-lg font-semibold text-[var(--text-primary)]">
                     {file.name}
                   </p>
-                  <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
+                  <p className="mt-1 text-base text-[var(--text-primary)]">
                     {(file.size / 1024).toFixed(0)} KB · Click to change
                   </p>
                 </div>
               ) : (
                 <div className="text-center">
-                  <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+                  <p className="text-lg font-medium text-[var(--text-primary)]">
                     Drop PDF here or click to browse
                   </p>
-                  <p className="text-xs mt-1" style={{ color: "var(--text-muted)", opacity: 0.5 }}>
+                  <p className="mt-1 text-base text-[var(--text-primary)]">
                     PDF only · Max 10MB
                   </p>
                 </div>
@@ -201,7 +207,7 @@ export default function ResumeAnalyzer() {
           <button
             onClick={uploadResume}
             disabled={loading || !file || !jdId}
-            className="w-full py-3 rounded-xl text-sm font-bold transition-all duration-200 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="flex w-full items-center justify-center gap-2 rounded-[24px] py-4 text-lg font-bold transition-all duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
             style={{
               background: "var(--text-primary)",
               color: "var(--bg-primary)",
@@ -217,18 +223,17 @@ export default function ResumeAnalyzer() {
               "Analyze Resume →"
             )}
           </button>
-        </div>
-      )}
+          </div>
+        )}
 
-      {/* Results */}
-      {result && (
-        <div className="flex flex-col gap-5">
+        {/* Results */}
+        {result && (
+          <div className="flex flex-col gap-5">
 
           {/* Score Overview */}
-          <div className="rounded-2xl p-6 flex flex-col gap-5 border"
+          <div className="flex flex-col gap-5 rounded-2xl border p-6 sm:p-7"
             style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}>
-            <p className="text-[10px] uppercase tracking-[0.18em] font-semibold"
-              style={{ color: "var(--text-muted)" }}>
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--text-primary)]">
               Score Overview
             </p>
             <div className="flex flex-col gap-4">
@@ -239,59 +244,55 @@ export default function ResumeAnalyzer() {
           </div>
 
           {/* Skills grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
 
             {/* Matched */}
-            <div className="rounded-2xl p-5 border"
+            <div className="rounded-2xl border p-5 sm:p-6"
               style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}>
-              <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-4"
-                style={{ color: "var(--text-muted)" }}>
+              <p className="mb-4 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--text-primary)]">
                 ✓ Matched Skills
               </p>
               <div className="flex flex-wrap gap-2">
                 {result.analysis.matched_skills?.length > 0
                   ? result.analysis.matched_skills.map(s => <Tag key={s} label={s} color="green" />)
-                  : <p className="text-xs" style={{ color: "var(--text-muted)", opacity: 0.4 }}>None found</p>
+                  : <p className="text-base text-[var(--text-primary)]">None found</p>
                 }
               </div>
             </div>
 
             {/* Missing */}
-            <div className="rounded-2xl p-5 border"
+            <div className="rounded-2xl border p-5 sm:p-6"
               style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}>
-              <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-4"
-                style={{ color: "var(--text-muted)" }}>
+              <p className="mb-4 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--text-primary)]">
                 ✗ Missing Skills
               </p>
               <div className="flex flex-wrap gap-2">
                 {result.analysis.missing_skills?.length > 0
                   ? result.analysis.missing_skills.map(s => <Tag key={s} label={s} color="red" />)
-                  : <p className="text-xs" style={{ color: "var(--text-muted)", opacity: 0.4 }}>None — great!</p>
+                  : <p className="text-base text-[var(--text-primary)]">None - great.</p>
                 }
               </div>
             </div>
 
             {/* Weak */}
-            <div className="rounded-2xl p-5 border"
+            <div className="rounded-2xl border p-5 sm:p-6"
               style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}>
-              <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-4"
-                style={{ color: "var(--text-muted)" }}>
+              <p className="mb-4 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--text-primary)]">
                 ⚠ Weak Skills
               </p>
               <div className="flex flex-wrap gap-2">
                 {result.analysis.weak_skills?.length > 0
                   ? result.analysis.weak_skills.map(s => <Tag key={s} label={s} color="yellow" />)
-                  : <p className="text-xs" style={{ color: "var(--text-muted)", opacity: 0.4 }}>None</p>
+                  : <p className="text-base text-[var(--text-primary)]">None</p>
                 }
               </div>
             </div>
 
             {/* Detected Skills */}
             {result.skills && Object.keys(result.skills).length > 0 && (
-              <div className="rounded-2xl p-5 border"
+              <div className="rounded-2xl border p-5 sm:p-6"
                 style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}>
-                <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-4"
-                  style={{ color: "var(--text-muted)" }}>
+                <p className="mb-4 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--text-primary)]">
                   📋 Detected Skills
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -300,11 +301,11 @@ export default function ResumeAnalyzer() {
                     .slice(0, 12)
                     .map(([skill, score]) => (
                       <span key={skill}
-                        className="text-xs px-2.5 py-1 rounded-full border font-mono"
+                        className="rounded-full border px-3 py-1.5 text-sm font-medium"
                         style={{
                           background: "var(--bg-secondary)",
                           borderColor: "var(--border)",
-                          color: "var(--text-muted)",
+                          color: "var(--text-primary)",
                         }}>
                         {skill} · {score}
                       </span>
@@ -317,16 +318,15 @@ export default function ResumeAnalyzer() {
 
           {/* Suggestions */}
           {result.analysis.improvement_suggestions?.length > 0 && (
-            <div className="rounded-2xl p-6 border"
+            <div className="rounded-2xl border p-6 sm:p-7"
               style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}>
-              <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-4"
-                style={{ color: "var(--text-muted)" }}>
+              <p className="mb-4 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--text-primary)]">
                 💡 Improvement Suggestions
               </p>
               <ul className="flex flex-col gap-3">
                 {result.analysis.improvement_suggestions.map((s, i) => (
-                  <li key={i} className="flex gap-3 text-sm leading-relaxed"
-                    style={{ color: "var(--text-muted)" }}>
+                  <li key={i} className="flex gap-3 text-base leading-7"
+                    style={{ color: "var(--text-primary)" }}>
                     <span className="font-mono shrink-0 mt-0.5" style={{ opacity: 0.4 }}>
                       {String(i + 1).padStart(2, "0")}.
                     </span>
@@ -337,8 +337,9 @@ export default function ResumeAnalyzer() {
             </div>
           )}
 
-        </div>
-      )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

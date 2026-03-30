@@ -37,8 +37,8 @@ def get_remaining_tokens(db: Session, user_id: int) -> int:
 
 def check_token_limit(db: Session, user_id: int, estimated_tokens: int = 500):
     """
-    LLM call se pehle check karo — limit exceed hogi?
-    Exceed hogi toh 429 raise karo.
+    LLM call se pehle check kara — limit exceed hogi?
+    Exceed hogi toh 429 raise kr diya.
     """
     used = get_today_usage(db, user_id)
     if used + estimated_tokens > DAILY_LIMIT:
@@ -64,7 +64,7 @@ def record_token_usage(
 ):
     """
     LLM call ke baad tokens record karo.
-    prompt + response dono count hote hain.
+    #prompt + response dono count hote hain.
     """
     today  = date.today()
     tokens = estimate_tokens(prompt) + estimate_tokens(response)

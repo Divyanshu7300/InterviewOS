@@ -94,7 +94,7 @@ def analyze_resume_vs_jd(
     db: Session,
     jd_id: int,
     resume_id: int,
-    user_id: int = None,   # ← token tracking ke liye
+    user_id: int = None,   # token tracking ke liye
 ) -> dict:
 
     jd     = db.query(JobDescription).filter(JobDescription.id == jd_id).first()

@@ -20,16 +20,22 @@ env/
 # Node / NPM
 # =========================
 node_modules/
+frontend/node_modules/
 package-lock.json
+frontend/package-lock.json
 npm-debug.log*
 
 # =========================
 # Next.js (Frontend)
 # =========================
+.next/
 frontend/.next/
+frontend/.turbo/
 frontend/out/
 frontend/dist/
 frontend/build/
+*.tsbuildinfo
+next-panic-*.log
 
 
 # =========================
@@ -53,6 +59,8 @@ Thumbs.db
 # Testing / Coverage
 # =========================
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
 .coverage
 htmlcov/
 

@@ -36,6 +36,7 @@ def create_comment(db: Session, data: CommentCreate) -> Comment:
             raise ValueError(f"Parent comment not found with id {data.parent_id}")
 
     comment = Comment(
+        user_id=data.user_id,
         user_name=data.user_name,
         content=data.content,
         parent_id=data.parent_id,

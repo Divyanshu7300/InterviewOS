@@ -17,7 +17,9 @@ from app.api.v1.skills.schema import (
     UserStatsOut, LeaderboardOut, LeaderboardEntry,
 )
 from app.services.skills.question_generator import get_or_generate_questions
-from app.services.skills.xp_service import process_quiz_result
+from app.services.skills.logo_catalog import get_logo_url
+from app.services.skills.similar_skill_generator import generate_similar_skills
+from app.services.skills.xp_service import process_quiz_result, get_display_streak
 from app.api.v1.token.service import check_token_limit
 from app.db.models.user import User
 
@@ -27,7 +29,40 @@ router = APIRouter(prefix="/api/v1/learn", tags=["learning"])
 # ─── 1. GET /skills ───────────────────────────────────────────────────────────
 @router.get("/skills", response_model=list[SkillOut])
 def get_skills(db: Session = Depends(get_db)):
-    return db.query(LearningSkill).order_by(LearningSkill.name).all()
+    skills = db.query(LearningSkill).order_by(LearningSkill.name).all()
+    return [
+        SkillOut(
+            id=skill.id,
+            name=skill.name,
+            slug=skill.slug,
+            description=skill.description,
+            icon=skill.icon,
+            logo_url=get_logo_url(skill.slug),
+            color=skill.color,
+        )
+        for skill in skills
+    ]
+
+
+@router.post("/skills/{skill_id}/similar", response_model=list[SkillOut])
+def generate_similar_skills_route(skill_id: int, db: Session = Depends(get_db)):
+    skill = db.query(LearningSkill).filter(LearningSkill.id == skill_id).first()
+    if not skill:
+        raise HTTPException(status_code=404, detail="Skill not found")
+
+    generated = generate_similar_skills(db=db, skill=skill)
+    return [
+        SkillOut(
+            id=item.id,
+            name=item.name,
+            slug=item.slug,
+            description=item.description,
+            icon=item.icon,
+            logo_url=get_logo_url(item.slug),
+            color=item.color,
+        )
+        for item in generated
+    ]
 
 
 # ─── 2. GET /skills/{skill_id}/topics ────────────────────────────────────────
@@ -199,7 +234,7 @@ def get_user_stats(user_id: int, db: Session = Depends(get_db)):
     return UserStatsOut(
         user_id=stats.user_id,
         total_xp=stats.total_xp,
-        current_streak=stats.current_streak,
+        current_streak=get_display_streak(stats),
         longest_streak=stats.longest_streak,
         topics_completed=stats.topics_completed,
         accuracy=accuracy,
@@ -207,7 +242,7 @@ def get_user_stats(user_id: int, db: Session = Depends(get_db)):
     )
 
 
-# ─── 6. GET /leaderboard ─────────────────────────────────────────────────────
+#
 @router.get("/leaderboard", response_model=LeaderboardOut)
 def get_leaderboard(limit: int = 20, db: Session = Depends(get_db)):
     stats = db.query(UserLearningStats).order_by(
@@ -225,7 +260,7 @@ def get_leaderboard(limit: int = 20, db: Session = Depends(get_db)):
             email=user.email if user else "unknown",
             total_xp=s.total_xp,
             topics_completed=s.topics_completed,
-            current_streak=s.current_streak,
+            current_streak=get_display_streak(s),
         ))
 
     return LeaderboardOut(entries=entries, total_users=total_users)

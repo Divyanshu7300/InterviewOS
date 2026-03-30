@@ -1,14 +1,16 @@
-def next_difficulty(score: float) -> str:
+def next_difficulty(score: float, current_level: str = "MEDIUM") -> str:
     """
     Determine the next question difficulty based on the candidate's score.
     Score is expected on a 0-10 scale.
     """
-    if score >= 7:
-        return "HARD"
-    elif score >= 4:
-        return "MEDIUM"
-    else:
-        return "EASY"
+    levels = ["EASY", "MEDIUM", "HARD"]
+    current_idx = levels.index(current_level) if current_level in levels else 1
+
+    if score >= 8:
+        return levels[min(current_idx + 1, len(levels) - 1)]
+    if score >= 5:
+        return levels[current_idx]
+    return levels[max(current_idx - 1, 0)]
 
 
 def build_feedback_message(score: float, feedback: str, missing: list[str]) -> str:

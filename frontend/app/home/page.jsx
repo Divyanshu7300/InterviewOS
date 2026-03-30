@@ -27,6 +27,18 @@ const features = [
   },
   {
     step:  "02",
+    icon:  "M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8zM14 2v6h6M9 13h6M9 17h6M9 9h2",
+    label: "Resume Analysis",
+    title: "See how your resume matches the role",
+    desc:  "Upload your resume against a selected job description and get ATS fit, skill match, missing keywords, and weak areas before you apply.",
+    bullets: ["ATS score breakdown", "Matched vs missing skills", "Role-fit scoring", "Gap-aware resume feedback"],
+    href:  "/dashboard/resume",
+    cta:   "Analyze Your Resume ->",
+    color: "text-rose-400",
+    bg:    "bg-rose-500/10 border-rose-500/20",
+  },
+  {
+    step:  "03",
     icon:  "M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z",
     label: "AI Interview",
     title: "Practice interviews tailored to your role",
@@ -38,7 +50,7 @@ const features = [
     bg:    "bg-purple-500/10 border-purple-500/20",
   },
   {
-    step:  "03",
+    step:  "04",
     icon:  "M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253",
     label: "Skill Learning",
     title: "Build skills with quizzes, XP & streaks",
@@ -50,7 +62,7 @@ const features = [
     bg:    "bg-emerald-500/10 border-emerald-500/20",
   },
   {
-    step:  "04",
+    step:  "05",
     icon:  "M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0",
     label: "Community",
     title: "Learn faster together",
@@ -78,35 +90,29 @@ export default function HomePage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen pb-32"
-        style={{ paddingTop: "72px", background: "var(--bg-primary)" }}>
-        <div className="max-w-3xl mx-auto px-5 flex flex-col gap-20">
+      <div className="min-h-screen bg-[var(--bg-primary)] px-4 pb-32 pt-[80px] sm:px-5">
+        <div className="mx-auto flex max-w-5xl flex-col gap-20">
 
           {/* ── HERO ── */}
-          <motion.div {...fadeUp(0)} className="pt-12 flex flex-col gap-5">
-            <p className="text-[11px] font-semibold tracking-[0.22em] uppercase"
-              style={{ color: "var(--text-muted)" }}>
+          <motion.div {...fadeUp(0)} className="flex flex-col gap-5 pt-8">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--text-primary)]">
               Welcome, {displayName}
             </p>
-            <h1 className="text-[46px] font-extrabold tracking-tight leading-[1.08]"
-              style={{ color: "var(--text-primary)" }}>
+            <h1 className="text-[38px] font-extrabold leading-[1.02] tracking-tight text-[var(--text-primary)] sm:text-[52px]">
               Land your<br />next role.
             </h1>
-            <p className="text-[16px] font-light leading-relaxed max-w-lg"
-              style={{ color: "var(--text-muted)" }}>
+            <p className="max-w-2xl text-[17px] leading-8 text-[var(--text-primary)]">
               InterviewOS is your end-to-end interview prep platform — from
-              decoding JDs to practicing with AI, building skills, and connecting
+              decoding JDs and analyzing resumes to practicing with AI, building skills, and connecting
               with a community of job seekers.
             </p>
             <div className="flex items-center gap-3 mt-1">
               <Link href="/dashboard/jd"
-                className="px-5 py-2.5 rounded-xl text-sm font-bold transition-all no-underline"
-                style={{ background: "var(--text-primary)", color: "var(--bg-primary)" }}>
+                className="rounded-xl bg-[var(--text-primary)] px-5 py-2.5 text-sm font-bold text-[var(--bg-primary)] transition-all no-underline">
                 Get Started →
               </Link>
               <Link href="/dashboard"
-                className="px-5 py-2.5 rounded-xl text-sm font-medium transition-all no-underline border"
-                style={{ borderColor: "var(--border)", color: "var(--text-muted)", background: "var(--bg-card)" }}>
+                className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-5 py-2.5 text-sm font-medium text-[var(--text-primary)] transition-all no-underline">
                 View Dashboard
               </Link>
             </div>
@@ -115,11 +121,10 @@ export default function HomePage() {
           {/* ── FEATURES ── */}
           <div className="flex flex-col gap-5">
             <motion.div {...fadeUp(0.1)}>
-              <p className="text-[10px] uppercase tracking-widest mb-1"
-                style={{ color: "var(--text-muted)" }}>
+              <p className="mb-1 text-[10px] uppercase tracking-widest text-[var(--text-primary)]">
                 Features
               </p>
-              <h2 className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
+              <h2 className="text-2xl font-bold text-[var(--text-primary)]">
                 Everything you need to get hired
               </h2>
             </motion.div>
@@ -129,16 +134,14 @@ export default function HomePage() {
                 <motion.div
                   key={f.step}
                   {...fadeUp(0.15 + i * 0.08)}
-                  className="rounded-2xl overflow-hidden border transition-all duration-200 group"
-                  style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}
+                  className="group overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] transition-all duration-200"
                 >
                   {/* card top */}
                   <div className="p-6 flex flex-col gap-4">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 border"
-                          style={{ background: "var(--bg-secondary)", borderColor: "var(--border)" }}>
-                          <span className="text-[10px] font-bold" style={{ color: "var(--text-muted)" }}>
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)]">
+                          <span className="text-[10px] font-bold text-[var(--text-primary)]">
                             {f.step}
                           </span>
                         </div>
@@ -151,13 +154,11 @@ export default function HomePage() {
                       </div>
                     </div>
 
-                    <h3 className="text-[18px] font-bold leading-snug"
-                      style={{ color: "var(--text-primary)" }}>
+                    <h3 className="text-[18px] font-bold leading-snug text-[var(--text-primary)]">
                       {f.title}
                     </h3>
 
-                    <p className="text-[14px] font-light leading-relaxed"
-                      style={{ color: "var(--text-muted)" }}>
+                    <p className="text-[15px] leading-7 text-[var(--text-primary)]">
                       {f.desc}
                     </p>
 
@@ -165,22 +166,21 @@ export default function HomePage() {
                       {f.bullets.map(b => (
                         <div key={b} className="flex items-center gap-2">
                           <span className={`text-[10px] ${f.color}`}>✓</span>
-                          <span className="text-[12px]" style={{ color: "var(--text-muted)" }}>{b}</span>
+                          <span className="text-[13px] text-[var(--text-primary)]">{b}</span>
                         </div>
                       ))}
                     </div>
                   </div>
 
                   {/* card footer */}
-                  <div className="px-6 py-3.5 flex items-center justify-between border-t"
-                    style={{ borderColor: "var(--border)" }}>
+                  <div className="flex items-center justify-between border-t border-[var(--border)] px-6 py-3.5">
                     <Link href={f.href}
                       className={`text-[13px] font-semibold ${f.color} hover:opacity-80 transition-opacity no-underline`}>
                       {f.cta}
                     </Link>
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-                      stroke="currentColor" strokeWidth="2" style={{ color: "var(--text-muted)" }}>
-                      <path d="M5 12h14M12 5l7 7-7 7"/>
+                      stroke="currentColor" strokeWidth="2" className="text-[var(--text-primary)]">
+                      <path d="M5 12h14M12 5l7 7-7 7" />
                     </svg>
                   </div>
                 </motion.div>

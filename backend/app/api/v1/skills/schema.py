@@ -13,6 +13,7 @@ class SkillOut(BaseModel):
     slug: str
     description: Optional[str]
     icon: Optional[str]
+    logo_url: Optional[str] = None
     color: Optional[str]
 
     class Config:

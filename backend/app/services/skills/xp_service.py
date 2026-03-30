@@ -1,5 +1,5 @@
 """
-Learning Module — XP + Streak Service
+Learning Module — XP n Streak Service
 """
 from datetime import datetime, date, timedelta
 from sqlalchemy.orm import Session
@@ -17,6 +17,19 @@ def get_or_create_stats(db: Session, user_id: int) -> UserLearningStats:
         db.commit()
         db.refresh(stats)
     return stats
+
+
+def get_display_streak(stats: UserLearningStats) -> int:
+    if not stats or not stats.last_activity:
+        return 0
+
+    today = datetime.utcnow().date()
+    last_activity_date = stats.last_activity.date()
+
+    if last_activity_date == today or last_activity_date == today - timedelta(days=1):
+        return stats.current_streak or 0
+
+    return 0
 
 
 def process_quiz_result(
@@ -38,9 +51,9 @@ def process_quiz_result(
     else:
         xp_earned = 0
 
-    # ── Stats update ──────────────────────────────────────────────────────────
+    # Stats update 
     stats = get_or_create_stats(db, user_id)
-    today = date.today()
+    today = datetime.utcnow().date()
     streak_updated = False
 
     if stats.last_activity:
@@ -65,7 +78,7 @@ def process_quiz_result(
     stats.total_attempted = (stats.total_attempted or 0) + total
     stats.last_activity   = datetime.utcnow()
 
-    # ── Topic Progress update ─────────────────────────────────────────────────
+    # Topic Progress update 
     progress = db.query(UserTopicProgress).filter(
         UserTopicProgress.user_id  == user_id,
         UserTopicProgress.topic_id == topic_id,

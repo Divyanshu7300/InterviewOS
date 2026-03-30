@@ -45,16 +45,19 @@ const fadeUp = (delay = 0) => ({
 
 function StatCard({ icon, value, label, loading, accent }) {
   return (
-    <div className="rounded-2xl p-5 border flex flex-col gap-3"
-      style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}>
-      <div style={{ color: accent || "var(--text-muted)" }}>
-        <Icon d={icons[icon]} size={15} />
+    <div className="group relative overflow-hidden rounded-[26px] border border-[var(--border)] bg-[var(--bg-card)] p-5 transition-all duration-200 hover:-translate-y-0.5 sm:p-6">
+      <div
+        className="absolute inset-x-0 top-0 h-px opacity-70"
+        style={{ background: accent || "var(--text-primary)" }}
+      />
+      <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)]" style={{ color: accent || "var(--text-primary)" }}>
+        <Icon d={icons[icon]} size={17} />
       </div>
-      <div>
-        <p className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
+      <div className="flex flex-col gap-1">
+        <p className="text-[30px] font-bold leading-none tracking-tight text-[var(--text-primary)]">
           {loading ? "—" : value}
         </p>
-        <p className="text-[11px] font-medium mt-0.5" style={{ color: "var(--text-muted)" }}>
+        <p className="text-sm font-medium text-[var(--text-primary)]">
           {label}
         </p>
       </div>
@@ -76,39 +79,21 @@ export default function Dashboard() {
   const [dashStats,  setDashStats]  = useState(null);
   const [learnStats, setLearnStats] = useState(null);
   const [loading,    setLoading]    = useState(true);
-  const [quote,      setQuote]      = useState(null);
+  const quote = quotes[new Date().getDate() % quotes.length];
 
   useEffect(() => {
-    const idx = new Date().getDate() % quotes.length;
-    setQuote(quotes[idx]);
-  }, []);
+    if (!userId) return;
 
-  // useEffect(() => {
-  //   if (!userId) return;
-  //   Promise.allSettled([
-  //     api.get(`/dashboard/users/${userId}/stats`),
-  //     api.get(`/learn/users/${userId}/stats`),
-  //   ]).then(([dashRes, learnRes]) => {
-  //     if (dashRes.status  === "fulfilled") setDashStats(dashRes.value.data);
-  //     if (learnRes.status === "fulfilled") setLearnStats(learnRes.value.data);
-  //   }).finally(() => setLoading(false));
-  // }, [userId]);
-  useEffect(() => {
-  if (!user?.id) return;
-
-  const uid = parseInt(user.id);
-
-  Promise.allSettled([
-    api.get(`/dashboard/users/${uid}/stats`),
-    api.get(`/learn/users/${uid}/stats`),
-  ])
-  .then(([dashRes, learnRes]) => {
-    if (dashRes.status === "fulfilled") setDashStats(dashRes.value.data);
-    if (learnRes.status === "fulfilled") setLearnStats(learnRes.value.data);
-  })
-  .finally(() => setLoading(false));
-
-}, [user]);
+    Promise.allSettled([
+      api.get(`/dashboard/users/${userId}/stats`),
+      api.get(`/learn/users/${userId}/stats`),
+    ])
+      .then(([dashRes, learnRes]) => {
+        if (dashRes.status === "fulfilled") setDashStats(dashRes.value.data);
+        if (learnRes.status === "fulfilled") setLearnStats(learnRes.value.data);
+      })
+      .finally(() => setLoading(false));
+  }, [userId]);
 
   const overview    = dashStats?.overview ?? {};
   const totalXp     = learnStats?.total_xp ?? 0;
@@ -118,23 +103,52 @@ export default function Dashboard() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen pb-24 px-5"
-        style={{ paddingTop: "72px", background: "var(--bg-primary)" }}>
-        <div className="max-w-5xl mx-auto flex flex-col gap-10">
+      <div className="min-h-screen bg-[var(--bg-primary)] px-4 pb-24 pt-[80px] sm:px-5">
+        <div className="mx-auto flex max-w-5xl flex-col gap-10">
 
           {/* ── HEADER ── */}
           <motion.div {...fadeUp(0)} className="pt-6">
-            <p className="text-[10px] font-semibold uppercase tracking-widest mb-1"
-              style={{ color: "var(--text-muted)" }}>
-              Dashboard
-            </p>
-            <h1 className="text-[28px] font-bold tracking-tight"
-              style={{ color: "var(--text-primary)" }}>
-              Hey, {displayName} 👋
-            </h1>
-            <p className="text-sm mt-0.5" style={{ color: "var(--text-muted)" }}>
-              {user?.email}
-            </p>
+            <div className="relative overflow-hidden rounded-[32px] border border-[var(--border)] bg-[var(--bg-card)] p-6 sm:p-8">
+              <div
+                className="absolute inset-0 opacity-100"
+                style={{
+                  background:
+                    "radial-gradient(circle at top left, rgba(255,255,255,0.08), transparent 32%), radial-gradient(circle at right center, rgba(255,255,255,0.05), transparent 28%)",
+                }}
+              />
+              <div className="relative grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_320px] lg:items-end">
+                <div>
+                  <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-[var(--text-primary)]">
+                    Dashboard
+                  </p>
+                  <h1 className="text-[34px] font-extrabold tracking-tight text-[var(--text-primary)] sm:text-[46px]">
+                    Hey, {displayName}
+                  </h1>
+                  <p className="mt-3 max-w-2xl text-base leading-7 text-[var(--text-primary)] sm:text-[17px]">
+                    Everything important is in one place: your prep momentum, progress, and the fastest next step.
+                  </p>
+                  <p className="mt-3 text-sm font-medium text-[var(--text-primary)]">
+                    {user?.email}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { label: "Level", value: level, accent: "#f59e0b" },
+                    { label: "Total XP", value: loading ? "—" : totalXp.toLocaleString(), accent: "#38bdf8" },
+                    { label: "Current Streak", value: loading ? "—" : `${learnStats?.current_streak ?? 0} days`, accent: "#f97316" },
+                    { label: "Topics Done", value: loading ? "—" : learnStats?.topics_completed ?? 0, accent: "#a78bfa" },
+                  ].map((item) => (
+                    <div key={item.label} className="rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4">
+                      <p className="text-sm font-medium text-[var(--text-primary)]">{item.label}</p>
+                      <p className="mt-2 text-2xl font-bold tracking-tight" style={{ color: item.accent }}>
+                        {item.value}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </motion.div>
 
           {/* ── QUOTE + XP — side by side ── */}
@@ -142,58 +156,56 @@ export default function Dashboard() {
 
             {/* Quote */}
             {quote && (
-              <div className="rounded-2xl border px-5 py-5 flex flex-col justify-between gap-4"
-                style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}>
-                <p className="text-[13px] font-light leading-relaxed italic"
-                  style={{ color: "var(--text-primary)" }}>
-                  "{quote.text}"
+              <div className="flex flex-col justify-between gap-4 rounded-[28px] border border-[var(--border)] bg-[var(--bg-card)] px-6 py-6">
+                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--text-primary)]">
+                  Quote Of The Day
                 </p>
-                <p className="text-[11px] font-medium" style={{ color: "var(--text-muted)" }}>
+                <p className="text-base italic leading-7 text-[var(--text-primary)]">
+                  &ldquo;{quote.text}&rdquo;
+                </p>
+                <p className="text-sm font-medium text-[var(--text-primary)]">
                   — {quote.author}
                 </p>
               </div>
             )}
 
             {/* XP Bar */}
-            <div className="rounded-2xl border px-5 py-5 flex flex-col justify-between gap-4"
-              style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}>
+            <div className="flex flex-col justify-between gap-5 rounded-[28px] border border-[var(--border)] bg-[var(--bg-card)] px-6 py-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Icon d={icons.xp} size={13} />
-                  <span className="text-[11px] font-semibold uppercase tracking-wider"
-                    style={{ color: "var(--text-muted)" }}>
+                  <span className="text-sm font-semibold uppercase tracking-wider text-[var(--text-primary)]">
                     Level {level}
                   </span>
                 </div>
-                <span className="text-[11px] font-medium" style={{ color: "var(--text-muted)" }}>
+                <span className="text-sm font-medium text-[var(--text-primary)]">
                   {xpInLevel} / 1000 XP
                 </span>
               </div>
               <div>
-                <div className="h-2 rounded-full overflow-hidden mb-2"
-                  style={{ background: "var(--border)" }}>
+                <div className="mb-3 h-2.5 overflow-hidden rounded-full bg-[var(--border)]">
                   <motion.div
                     className="h-full rounded-full"
-                    style={{ background: "var(--text-primary)" }}
+                    style={{ background: "linear-gradient(90deg, #f59e0b, #facc15)" }}
                     initial={{ width: 0 }}
                     animate={{ width: `${xpPct}%` }}
                     transition={{ duration: 0.8, ease: "easeOut", delay: 0.3 }}
                   />
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[10px] font-medium" style={{ color: "var(--text-muted)" }}>
+                  <span className="text-sm font-medium text-[var(--text-primary)]">
                     Level {level}
                   </span>
-                  <span className="text-[10px] font-medium" style={{ color: "var(--text-muted)" }}>
+                  <span className="text-sm font-medium text-[var(--text-primary)]">
                     Level {level + 1}
                   </span>
                 </div>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>
+                <span className="text-xl font-bold text-[var(--text-primary)]">
                   {totalXp}
                 </span>
-                <span className="text-[11px] font-medium" style={{ color: "var(--text-muted)" }}>
+                <span className="text-sm font-medium text-[var(--text-primary)]">
                   total XP
                 </span>
               </div>
@@ -202,13 +214,12 @@ export default function Dashboard() {
 
           {/* ── OVERVIEW ── */}
           <motion.div {...fadeUp(0.1)}>
-            <p className="text-[10px] font-semibold uppercase tracking-widest mb-3"
-              style={{ color: "var(--text-muted)" }}>
+            <p className="mb-3 text-sm font-semibold uppercase tracking-widest text-[var(--text-primary)]">
               Overview
             </p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {[
-                { label: "Resumes",    value: overview.total_resumes   ?? 0, icon: "resume" },
+                { label: "Resumes",    value: overview.total_resumes    ?? 0, icon: "resume" },
                 { label: "JDs",        value: overview.total_jds       ?? 0, icon: "jd" },
                 { label: "Interviews", value: overview.total_interviews ?? 0, icon: "interview" },
                 { label: "Comments",   value: overview.total_comments  ?? 0, icon: "community" },
@@ -220,11 +231,10 @@ export default function Dashboard() {
 
           {/* ── LEARNING ── */}
           <motion.div {...fadeUp(0.15)}>
-            <p className="text-[10px] font-semibold uppercase tracking-widest mb-3"
-              style={{ color: "var(--text-muted)" }}>
+            <p className="mb-3 text-sm font-semibold uppercase tracking-widest text-[var(--text-primary)]">
               Learning
             </p>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {[
                 { label: "Total XP",         value: totalXp,                            icon: "xp",     accent: "#f59e0b" },
                 { label: "Day Streak 🔥",     value: learnStats?.current_streak  ?? 0,  icon: "streak", accent: "#f97316" },
@@ -238,8 +248,7 @@ export default function Dashboard() {
           {/* ── INTERVIEW PERFORMANCE ── */}
           {/*dashStats?.interview_stats && (
             <motion.div {...fadeUp(0.2)}>
-              <p className="text-[10px] font-semibold uppercase tracking-widest mb-3"
-                style={{ color: "var(--text-muted)" }}>
+              <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-primary)]">
                 Interview Performance
               </p>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -251,10 +260,10 @@ export default function Dashboard() {
                 ].map(({ label, value }) => (
                   <div key={label} className="rounded-2xl p-5 border"
                     style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}>
-                    <p className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
+                    <p className="text-2xl font-bold text-[var(--text-primary)]">
                       {value ?? 0}
                     </p>
-                    <p className="text-[11px] font-medium mt-0.5" style={{ color: "var(--text-muted)" }}>
+                    <p className="mt-1 text-sm font-medium text-[var(--text-primary)]">
                       {label}
                     </p>
                   </div>
@@ -264,37 +273,34 @@ export default function Dashboard() {
           )*/}
           {/* ── QUICK ACTIONS ── */}
           <motion.div {...fadeUp(0.25)}>
-            <p className="text-[10px] font-semibold uppercase tracking-widest mb-3"
-              style={{ color: "var(--text-muted)" }}>
+            <p className="mb-3 text-sm font-semibold uppercase tracking-widest text-[var(--text-primary)]">
               Quick Actions
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               {[
-                { href: "/dashboard/jd",         title: "Analyze JD",      desc: "Extract skills and requirements.",  icon: "jd"        },
-                { href: "/dashboard/interview",   title: "AI Interview",    desc: "Practice role-specific questions.", icon: "interview" },
-                { href: "/dashboard/learn",       title: "Learn & Earn XP", desc: "Quiz-based learning with streaks.", icon: "learn"     },
-                { href: "/dashboard/community",   title: "Community",       desc: "Discuss with other learners.",      icon: "community" },
-                { href: "/dashboard/learn/stats", title: "My Progress",     desc: "XP, streaks and leaderboard.",      icon: "trophy"    },
+                { href: "/dashboard/jd",          title: "Analyze JD",       desc: "Extract skills and requirements.",      icon: "jd"        },
+                { href: "/dashboard/resume",      title: "Resume Analysis",  desc: "Measure resume match against any JD.", icon: "resume"    },
+                { href: "/dashboard/interview",   title: "AI Interview",     desc: "Practice role-specific questions.",    icon: "interview" },
+                { href: "/dashboard/learn",       title: "Learn & Earn XP",  desc: "Quiz-based learning with streaks.",    icon: "learn"     },
+                { href: "/dashboard/community",   title: "Community",        desc: "Discuss with other learners.",         icon: "community" },
+                { href: "/dashboard/learn/stats", title: "My Progress",      desc: "XP, streaks and leaderboard.",         icon: "trophy"    },
               ].map(({ href, title, desc, icon }) => (
                 <Link key={href} href={href}
-                  className="rounded-2xl p-5 border transition-all duration-150 group flex flex-col gap-3 no-underline"
-                  style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}
-                  onMouseEnter={e => e.currentTarget.style.borderColor = "var(--text-muted)"}
-                  onMouseLeave={e => e.currentTarget.style.borderColor = "var(--border)"}
+                  className="group flex flex-col gap-4 rounded-[26px] border border-[var(--border)] bg-[var(--bg-card)] p-5 no-underline transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--text-primary)] sm:p-6"
                 >
                   <div className="flex items-center justify-between">
-                    <div style={{ color: "var(--text-muted)" }}>
-                      <Icon d={icons[icon]} size={15} />
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--bg-secondary)] text-[var(--text-primary)]">
+                      <Icon d={icons[icon]} size={16} />
                     </div>
-                    <div style={{ color: "var(--text-muted)" }}>
-                      <Icon d={icons.arrow} size={11} />
+                    <div className="text-[var(--text-primary)]">
+                      <Icon d={icons.arrow} size={12} />
                     </div>
                   </div>
                   <div>
-                    <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                    <p className="text-[18px] font-semibold leading-snug text-[var(--text-primary)]">
                       {title}
                     </p>
-                    <p className="text-[11px] font-medium mt-0.5" style={{ color: "var(--text-muted)" }}>
+                    <p className="mt-1 text-sm font-medium leading-6 text-[var(--text-primary)]">
                       {desc}
                     </p>
                   </div>

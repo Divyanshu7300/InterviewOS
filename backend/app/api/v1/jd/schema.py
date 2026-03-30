@@ -8,7 +8,7 @@ class JDInput(BaseModel):
 
 
 class JDAnalysisResult(BaseModel):
-    id: int          # ← YEH ADD KARO
+    id: int          # YEH ADD 
     jd_id: int 
     role_title: str
     role_summary: str

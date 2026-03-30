@@ -27,6 +27,16 @@ class InterviewSession(Base):
         back_populates="session",
         cascade="all, delete"
     )
+    evaluations = relationship(
+        "InterviewEvaluation",
+        back_populates="session",
+        cascade="all, delete"
+    )
+    insight_snapshots = relationship(
+        "InterviewInsight",
+        back_populates="session",
+        cascade="all, delete"
+    )
 
 
 # -------------------------
@@ -42,6 +52,7 @@ class InterviewMessage(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     session = relationship("InterviewSession", back_populates="messages")
+    evaluations = relationship("InterviewEvaluation", back_populates="message")
 
 
 # -------------------------
@@ -58,3 +69,37 @@ class InterviewScore(Base):
     created_at  = Column(DateTime, default=datetime.utcnow)
 
     session = relationship("InterviewSession", back_populates="scores")
+
+
+class InterviewEvaluation(Base):
+    __tablename__ = "interview_evaluations"
+
+    id                 = Column(Integer, primary_key=True, index=True)
+    session_id         = Column(Integer, ForeignKey("interview_sessions.id"), nullable=False, index=True)
+    message_id         = Column(Integer, ForeignKey("interview_messages.id"), nullable=False, index=True)
+    question           = Column(Text, nullable=False)
+    topic              = Column(String, nullable=True)
+    level_before       = Column(String, nullable=True)
+    level_after        = Column(String, nullable=True)
+    overall_score      = Column(Float, nullable=False, default=0)
+    confidence_score   = Column(Float, nullable=False, default=0)
+    correctness_score  = Column(Float, nullable=False, default=0)
+    depth_score        = Column(Float, nullable=False, default=0)
+    clarity_score      = Column(Float, nullable=False, default=0)
+    evaluation_json    = Column(Text, nullable=False, default="{}")
+    created_at         = Column(DateTime, default=datetime.utcnow)
+
+    session = relationship("InterviewSession", back_populates="evaluations")
+    message = relationship("InterviewMessage", back_populates="evaluations")
+
+
+class InterviewInsight(Base):
+    __tablename__ = "interview_insights"
+
+    id              = Column(Integer, primary_key=True, index=True)
+    session_id      = Column(Integer, ForeignKey("interview_sessions.id"), nullable=False, index=True)
+    snapshot_type   = Column(String, nullable=False, default="live")
+    insights_json   = Column(Text, nullable=False, default="{}")
+    created_at      = Column(DateTime, default=datetime.utcnow)
+
+    session = relationship("InterviewSession", back_populates="insight_snapshots")

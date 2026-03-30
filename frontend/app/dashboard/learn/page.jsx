@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import api from "../../../lib/axios";
 import { useAuth } from "../../../context/AuthContext";
@@ -15,7 +16,7 @@ const LEVEL = {
 
 function SkeletonCard() {
   return (
-    <div className="h-36 rounded-2xl animate-pulse" style={{ background: "var(--bg-secondary)" }} />
+    <div className="h-36 animate-pulse rounded-2xl bg-[var(--bg-secondary)]" />
   );
 }
 
@@ -33,12 +34,22 @@ export default function LearnPage() {
   useEffect(() => {
     api.get("/learn/skills")
       .then(r => {
-        setSkills(r.data);
-        if (r.data.length > 0) fetchTopics(r.data[0]);
+        const initialSkills = r.data || [];
+        setSkills(initialSkills);
+        if (initialSkills.length > 0) {
+          const firstSkill = initialSkills[0];
+          setSelectedSkill(firstSkill);
+          setLoadingTopics(true);
+          const uid = user?.id;
+          api.get(`/learn/skills/${firstSkill.id}/topics${uid ? `?user_id=${uid}` : ""}`)
+            .then(topicRes => setTopics(topicRes.data))
+            .catch(() => setError("Failed to load topics."))
+            .finally(() => setLoadingTopics(false));
+        }
       })
       .catch(() => setError("Failed to load skills."))
       .finally(() => setLoadingSkills(false));
-  }, []);
+  }, [user?.id]);
 
   const fetchTopics = (skill) => {
     setSelectedSkill(skill);
@@ -51,6 +62,21 @@ export default function LearnPage() {
       .finally(() => setLoadingTopics(false));
   };
 
+  const refreshSkills = async (preferredSkillId = null) => {
+    const res = await api.get("/learn/skills");
+    const nextSkills = res.data || [];
+    setSkills(nextSkills);
+    if (!nextSkills.length) return;
+
+    const nextSelected = preferredSkillId
+      ? nextSkills.find((item) => item.id === preferredSkillId)
+      : selectedSkill
+        ? nextSkills.find((item) => item.id === selectedSkill.id)
+        : nextSkills[0];
+
+    if (nextSelected) fetchTopics(nextSelected);
+  };
+
   const allTopics = [
     ...topics.beginner.map(t     => ({ ...t, level: "BEGINNER" })),
     ...topics.intermediate.map(t => ({ ...t, level: "INTERMEDIATE" })),
@@ -61,9 +87,8 @@ export default function LearnPage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen pb-24 px-5"
-        style={{ paddingTop: "72px", background: "var(--bg-primary)" }}>
-        <div className="max-w-5xl mx-auto flex flex-col gap-8">
+      <div className="min-h-screen bg-[var(--bg-primary)] px-5 pb-24 pt-[72px]">
+        <div className="mx-auto flex max-w-5xl flex-col gap-8">
 
           {/* ── HEADER ── */}
           <motion.div
@@ -72,25 +97,48 @@ export default function LearnPage() {
             className="pt-6 flex items-start justify-between gap-4"
           >
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-widest mb-1"
-                style={{ color: "var(--text-muted)" }}>
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-primary)]">
                 Learning
               </p>
-              <h1 className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
+              <h1 className="text-[32px] font-bold text-[var(--text-primary)]">
                 Skills & Topics
               </h1>
-              <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>
+              <p className="mt-2 text-base text-[var(--text-primary)]">
                 Pick a skill, choose a topic, take the quiz — earn XP.
               </p>
             </div>
             <button
               onClick={() => router.push("/dashboard/learn/stats")}
-              className="flex-shrink-0 text-[12px] font-semibold px-4 py-2 rounded-xl border transition-all"
-              style={{ borderColor: "var(--border)", color: "var(--text-muted)", background: "var(--bg-card)" }}
+              className="shrink-0 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2 text-[12px] font-semibold text-[var(--text-primary)] transition-all"
             >
               My Stats →
             </button>
           </motion.div>
+
+          {/* Similar skills feature temporarily hidden until the generation flow is reworked. */}
+          {/* {selectedSkill && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25 }}
+              className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] px-5 py-4"
+            >
+              <div>
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-primary)]">
+                  Skill Expansion
+                </p>
+                <p className="text-base text-[var(--text-primary)]">
+                  Generate adjacent skills similar to {selectedSkill.name} with starter topics.
+                </p>
+              </div>
+              <button
+                onClick={generateSimilar}
+                disabled={generatingSkills}
+                className="rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] px-4 py-2 text-[12px] font-semibold text-[var(--text-primary)] transition-all disabled:opacity-50"
+              >
+                {generatingSkills ? "Generating..." : "Generate Similar Skills"}
+              </button>
+            </motion.div>
+          )} */}
 
           {/* ── ERROR ── */}
           {error && (
@@ -107,8 +155,7 @@ export default function LearnPage() {
           >
             {loadingSkills
               ? Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className="h-9 w-24 rounded-xl animate-pulse"
-                    style={{ background: "var(--bg-secondary)" }} />
+                  <div key={i} className="h-9 w-24 animate-pulse rounded-xl bg-[var(--bg-secondary)]" />
                 ))
               : skills.map(skill => {
                   const active = selectedSkill?.id === skill.id;
@@ -116,14 +163,26 @@ export default function LearnPage() {
                     <button
                       key={skill.id}
                       onClick={() => fetchTopics(skill)}
-                      className="px-4 py-2 rounded-xl text-sm font-semibold border transition-all duration-150"
+                    className="flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-all duration-150"
                       style={{
                         background:  active ? "var(--text-primary)" : "var(--bg-card)",
-                        color:       active ? "var(--bg-primary)"   : "var(--text-muted)",
+                        color:       active ? "var(--bg-primary)"   : "var(--text-primary)",
                         borderColor: active ? "var(--text-primary)" : "var(--border)",
                       }}
                     >
-                      {skill.icon && <span className="mr-1.5">{skill.icon}</span>}
+                      {skill.logo_url ? (
+                        <Image
+                          src={skill.logo_url}
+                          alt={`${skill.name} logo`}
+                          width={16}
+                          height={16}
+                          unoptimized
+                          className="h-4 w-4 object-contain"
+                          style={{ filter: active && skill.slug === "nextjs" ? "invert(1)" : "none" }}
+                        />
+                      ) : skill.icon ? (
+                        <span>{skill.icon}</span>
+                      ) : null}
                       {skill.name}
                     </button>
                   );
@@ -136,19 +195,18 @@ export default function LearnPage() {
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }}
               transition={{ duration: 0.3, delay: 0.1 }}
-              className="flex items-center gap-4 px-5 py-3 rounded-xl border"
-              style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}
+              className="flex items-center gap-4 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-5 py-3"
             >
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-[12px] font-semibold" style={{ color: "var(--text-primary)" }}>
+                  <span className="text-sm font-semibold text-[var(--text-primary)]">
                     {selectedSkill?.name} Progress
                   </span>
-                  <span className="text-[11px] font-medium" style={{ color: "var(--text-muted)" }}>
+                  <span className="text-sm font-medium text-[var(--text-primary)]">
                     {completedCount} / {allTopics.length} topics
                   </span>
                 </div>
-                <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "var(--border)" }}>
+                <div className="h-1.5 overflow-hidden rounded-full bg-[var(--border)]">
                   <motion.div
                     className="h-full rounded-full bg-emerald-400"
                     initial={{ width: 0 }}
@@ -166,9 +224,8 @@ export default function LearnPage() {
               {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
             </div>
           ) : allTopics.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 rounded-2xl border"
-              style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}>
-              <p className="text-sm font-medium" style={{ color: "var(--text-muted)" }}>
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] py-16">
+              <p className="text-sm font-medium text-[var(--text-primary)]">
                 No topics available for this skill yet.
               </p>
             </div>
@@ -190,7 +247,7 @@ export default function LearnPage() {
                         {lvl}
                       </span>
                       <div className="flex-1 h-px" style={{ background: "var(--border)" }} />
-                      <span className="text-[11px] font-medium" style={{ color: "var(--text-muted)" }}>
+                      <span className="text-sm font-medium text-[var(--text-primary)]">
                         {lvlTopics.filter(t => t.completed).length}/{lvlTopics.length} done
                       </span>
                     </div>
@@ -225,16 +282,15 @@ export default function LearnPage() {
 
                           {/* Description */}
                           {topic.description && (
-                            <p className="text-[12px] leading-relaxed line-clamp-2"
-                              style={{ color: "var(--text-muted)" }}>
+                            <p className="text-sm leading-relaxed line-clamp-2"
+                              style={{ color: "var(--text-primary)" }}>
                               {topic.description}
                             </p>
                           )}
 
                           {/* Score bar */}
                           {topic.attempts > 0 && (
-                            <div className="w-full h-1 rounded-full overflow-hidden"
-                              style={{ background: "var(--border)" }}>
+                            <div className="h-1 w-full overflow-hidden rounded-full bg-[var(--border)]">
                               <div
                                 className={`h-full rounded-full ${c.dot}`}
                                 style={{ width: `${Math.round((topic.best_score || 0) * 100)}%`, opacity: 0.7 }}
@@ -244,12 +300,12 @@ export default function LearnPage() {
 
                           {/* Footer */}
                           <div className="flex items-center justify-between mt-auto">
-                            <span className="text-[11px] font-semibold"
-                              style={{ color: "var(--text-muted)" }}>
+                            <span className="text-sm font-semibold"
+                              style={{ color: "var(--text-primary)" }}>
                               +{topic.xp_reward} XP
                             </span>
-                            <span className="text-[11px] font-semibold transition-colors"
-                              style={{ color: "var(--text-muted)" }}>
+                            <span className="text-sm font-semibold transition-colors"
+                              style={{ color: "var(--text-primary)" }}>
                               {topic.completed ? "Retry →" : "Start →"}
                             </span>
                           </div>

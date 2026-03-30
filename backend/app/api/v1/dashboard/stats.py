@@ -1,18 +1,27 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, or_, and_
 
 from app.db.session import get_db
 from app.db.models.resume import Resume
 from app.db.models.jd import JobDescription, JDAnalysisResult
 from app.db.models.interview import InterviewSession, InterviewScore
 from app.db.models.comment import Comment
+from app.db.models.user import User
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
 
 @router.get("/users/{user_id}/stats")
 def get_user_dashboard_stats(user_id: int, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == user_id).first()
+    fallback_names = []
+    if user:
+        if user.username:
+            fallback_names.append(f"@{user.username}")
+        if user.email:
+            fallback_names.append(user.email.split("@")[0])
+
 
     # Counts
     total_resumes = db.query(Resume).filter(
@@ -30,9 +39,13 @@ def get_user_dashboard_stats(user_id: int, db: Session = Depends(get_db)):
         InterviewSession.user_id == user_id
     ).count()
 
-    total_comments = db.query(Comment).filter(
-        Comment.user_id == user_id
-    ).count()
+    comment_filters = [Comment.user_id == user_id]
+    if fallback_names:
+        comment_filters.append(
+            and_(Comment.user_id.is_(None), Comment.user_name.in_(fallback_names))
+        )
+
+    total_comments = db.query(Comment).filter(or_(*comment_filters)).count()
 
     # Interview averages
     avg_scores = (

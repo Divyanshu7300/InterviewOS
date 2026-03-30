@@ -26,7 +26,7 @@ function Tag({ children, color = "default" }) {
     purple:  { background: "rgba(167,139,250,0.1)", borderColor: "rgba(167,139,250,0.2)", color: "#a78bfa" },
   };
   return (
-    <span className="text-[11px] font-semibold px-2.5 py-1 rounded-lg border"
+    <span className="rounded-lg border px-3 py-1.5 text-sm font-semibold"
       style={styles[color]}>
       {children}
     </span>
@@ -42,8 +42,7 @@ function Card({ title, children, delay = 0 }) {
       className="rounded-2xl p-5 flex flex-col gap-3 border"
       style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}
     >
-      <p className="text-[10px] font-semibold uppercase tracking-widest"
-        style={{ color: "var(--text-muted)" }}>
+      <p className="text-sm font-semibold uppercase tracking-widest text-[var(--text-primary)]">
         {title}
       </p>
       {children}
@@ -84,7 +83,7 @@ export default function JDAnalyzer() {
   return (
     <div className="min-h-screen pb-24 px-5"
       style={{ paddingTop: "72px", background: "var(--bg-primary)" }}>
-      <div className="max-w-4xl mx-auto flex flex-col gap-8">
+      <div className="mx-auto flex max-w-5xl flex-col gap-8">
 
         {/* ── HEADER ── */}
         <motion.div
@@ -92,14 +91,13 @@ export default function JDAnalyzer() {
           transition={{ duration: 0.3 }}
           className="pt-6"
         >
-          <p className="text-[10px] font-semibold uppercase tracking-widest mb-2"
-            style={{ color: "var(--text-muted)" }}>
+          <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-[var(--text-primary)]">
             JD Analyzer
           </p>
-          <h1 className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
+          <h1 className="text-[32px] font-extrabold tracking-tight text-[var(--text-primary)] sm:text-[40px]">
             Decode any Job Description
           </h1>
-          <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>
+          <p className="mt-2 text-base leading-7 text-[var(--text-primary)]">
             Paste a JD and extract skills, interview topics, and resume keywords instantly.
           </p>
         </motion.div>
@@ -108,7 +106,7 @@ export default function JDAnalyzer() {
         <motion.div
           initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.05 }}
-          className="rounded-2xl p-5 flex flex-col gap-4 border"
+          className="flex flex-col gap-4 rounded-[28px] border p-5 sm:p-6"
           style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}
         >
           <textarea
@@ -116,7 +114,7 @@ export default function JDAnalyzer() {
             onChange={e => setJdText(e.target.value)}
             placeholder="Paste the job description here..."
             rows={10}
-            className="w-full rounded-xl px-4 py-3 text-sm font-light outline-none resize-none transition-all duration-150"
+            className="w-full resize-none rounded-2xl px-4 py-4 text-base leading-7 outline-none transition-all duration-150"
             style={{
               background:   "var(--bg-secondary)",
               border:       "1px solid var(--border)",
@@ -128,7 +126,7 @@ export default function JDAnalyzer() {
             {error && (
               <motion.div
                 initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                className="flex items-center gap-2 text-[13px] px-3.5 py-2.5 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                className="flex items-center gap-2 rounded-lg border border-rose-500/20 bg-rose-500/10 px-3.5 py-2.5 text-sm text-rose-400">
                 <AlertIcon /> {error}
               </motion.div>
             )}
@@ -137,7 +135,7 @@ export default function JDAnalyzer() {
           <button
             onClick={analyzeJD}
             disabled={loading || !jdText.trim()}
-            className="w-full py-3 rounded-xl text-sm font-semibold transition-all duration-150 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="flex w-full items-center justify-center gap-2 rounded-2xl py-3.5 text-base font-semibold transition-all duration-150 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
             style={{
               background: "var(--text-primary)",
               color:      "var(--bg-primary)",
@@ -153,10 +151,10 @@ export default function JDAnalyzer() {
 
             {/* Role Overview */}
             <Card title="Role Overview" delay={0}>
-              <h2 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>
+              <h2 className="text-[28px] font-bold tracking-tight text-[var(--text-primary)]">
                 {result.role_title}
               </h2>
-              <p className="text-sm leading-relaxed" style={{ color: "var(--text-muted)" }}>
+              <p className="text-base leading-7 text-[var(--text-primary)]">
                 {result.role_summary}
               </p>
               <div className="flex flex-wrap gap-2 pt-1">
@@ -180,9 +178,9 @@ export default function JDAnalyzer() {
               <Card title="Soft Skills" delay={0.08}>
                 <ul className="flex flex-col gap-1.5">
                   {result.soft_skills?.map((s, i) => (
-                    <li key={i} className="text-[13px] flex items-center gap-2"
+                    <li key={i} className="flex items-center gap-2 text-base"
                       style={{ color: "var(--text-primary)" }}>
-                      <span style={{ color: "var(--text-muted)" }}>·</span> {s}
+                      <span className="text-[var(--text-primary)]">·</span> {s}
                     </li>
                   ))}
                 </ul>
@@ -192,9 +190,9 @@ export default function JDAnalyzer() {
               <Card title="Key Responsibilities" delay={0.11}>
                 <ul className="flex flex-col gap-1.5">
                   {result.key_responsibilities?.map((r, i) => (
-                    <li key={i} className="text-[13px] flex items-start gap-2"
+                    <li key={i} className="flex items-start gap-2 text-base"
                       style={{ color: "var(--text-primary)" }}>
-                      <span className="mt-0.5 flex-shrink-0" style={{ color: "var(--text-muted)" }}>·</span>
+                      <span className="mt-0.5 flex-shrink-0 text-[var(--text-primary)]">·</span>
                       {r}
                     </li>
                   ))}
@@ -205,9 +203,9 @@ export default function JDAnalyzer() {
               <Card title="Interview Topics" delay={0.14}>
                 <ul className="flex flex-col gap-1.5">
                   {result.interview_topics?.map((t, i) => (
-                    <li key={i} className="text-[13px] flex items-center gap-2"
+                    <li key={i} className="flex items-center gap-2 text-base"
                       style={{ color: "var(--text-primary)" }}>
-                      <span style={{ color: "var(--text-muted)" }}>·</span> {t}
+                      <span className="text-[var(--text-primary)]">·</span> {t}
                     </li>
                   ))}
                 </ul>
@@ -232,13 +230,13 @@ export default function JDAnalyzer() {
             >
               <button
                 onClick={() => router.push(`/dashboard/resume`)}
-                className="px-6 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 active:scale-[0.98]"
+                className="rounded-xl px-6 py-3 text-sm font-semibold transition-all duration-150 active:scale-[0.98]"
                 style={{ background: "var(--text-primary)", color: "var(--bg-primary)" }}>
                 Upload Resume →
               </button>
               <button
                 onClick={() => router.push(`/dashboard/interview`)}
-                className="px-6 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 active:scale-[0.98] border"
+                className="rounded-xl border px-6 py-3 text-sm font-semibold transition-all duration-150 active:scale-[0.98]"
                 style={{ borderColor: "var(--border)", color: "var(--text-primary)", background: "var(--bg-card)" }}>
                 Start AI Interview →
               </button>

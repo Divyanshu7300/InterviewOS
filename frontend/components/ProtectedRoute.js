@@ -9,18 +9,18 @@ export default function ProtectedRoute({ children }) {
   const router = useRouter();
 
   useEffect(() => {
-    // loading khatam hone ke baad hi check karo
+    // Only check auth after loading completes.
     if (!loading && !user) {
       router.push("/login");
     }
-  }, [user, loading]);
+  }, [user, loading, router]);
 
-  // Token check ho raha hai — kuch mat dikhao
+  // Auth state is still loading.
   if (loading) return null;
 
-  // Token check ho gaya, user nahi hai — kuch mat dikhao (redirect hoga)
+  // User is not authenticated; redirect will handle navigation.
   if (!user) return null;
 
-  // User hai — page dikhao
+  // User is authenticated.
   return children;
 }

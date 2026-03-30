@@ -1,0 +1,37 @@
+LOGO_URLS = {
+    "python": "https://cdn.simpleicons.org/python/3776AB",
+    "fastapi": "https://cdn.simpleicons.org/fastapi/009688",
+    "django": "https://cdn.simpleicons.org/django/092E20",
+    "nodejs": "https://cdn.simpleicons.org/nodedotjs/339933",
+    "sql": "https://cdn.simpleicons.org/mysql/4479A1",
+    "postgresql": "https://cdn.simpleicons.org/postgresql/4169E1",
+    "redis": "https://cdn.simpleicons.org/redis/DC382D",
+    "react": "https://cdn.simpleicons.org/react/61DAFB",
+    "nextjs": "https://cdn.simpleicons.org/nextdotjs/000000",
+    "typescript": "https://cdn.simpleicons.org/typescript/3178C6",
+    "javascript": "https://cdn.simpleicons.org/javascript/F7DF1E",
+    "tailwindcss": "https://cdn.simpleicons.org/tailwindcss/06B6D4",
+    "docker": "https://cdn.simpleicons.org/docker/2496ED",
+    "git": "https://cdn.simpleicons.org/git/F05032",
+    "linux": "https://cdn.simpleicons.org/linux/FCC624",
+    "dsa": "https://cdn.simpleicons.org/thealgorithms/00BCB4",
+    "system-design": "https://cdn.simpleicons.org/diagramsdotnet/F08705",
+    "rest-apis": "https://cdn.simpleicons.org/openapiinitiative/6BA539",
+    "machine-learning": "https://cdn.simpleicons.org/scikitlearn/F7931E",
+    "langchain": "https://cdn.simpleicons.org/langchain/1C3C3C",
+    "java": "https://cdn.simpleicons.org/openjdk/EA2D2E",
+    "spring": "https://cdn.simpleicons.org/spring/6DB33F",
+    "golang": "https://cdn.simpleicons.org/go/00ADD8",
+    "kubernetes": "https://cdn.simpleicons.org/kubernetes/326CE5",
+    "aws": "https://cdn.simpleicons.org/amazonwebservices/FF9900",
+    "mongodb": "https://cdn.simpleicons.org/mongodb/47A248",
+    "graphql": "https://cdn.simpleicons.org/graphql/E10098",
+    "vue": "https://cdn.simpleicons.org/vuedotjs/4FC08D",
+    "angular": "https://cdn.simpleicons.org/angular/DD0031",
+    "csharp": "https://cdn.simpleicons.org/sharp/99CC00",
+    "dotnet": "https://cdn.simpleicons.org/dotnet/512BD4",
+}
+
+
+def get_logo_url(slug: str) -> str | None:
+    return LOGO_URLS.get(slug)

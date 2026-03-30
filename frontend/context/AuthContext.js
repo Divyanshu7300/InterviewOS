@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, startTransition, useContext, useEffect, useState } from "react";
 
 const AuthContext = createContext();
 
@@ -13,38 +13,57 @@ function decodeToken(token) {
   }
 }
 
+function getStoredUser() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const token = localStorage.getItem("token");
+  if (!token) {
+    return null;
+  }
+
+  const payload = decodeToken(token);
+  if (!payload) {
+    localStorage.clear();
+    return null;
+  }
+
+  if (payload?.exp && payload.exp * 1000 < Date.now()) {
+    localStorage.clear();
+    return null;
+  }
+
+  const storedId =
+    localStorage.getItem("user_id") ??
+    payload.user_id ??
+    payload.id ??
+    payload.sub;
+
+  return {
+    id: storedId ? String(storedId) : null,
+    email: localStorage.getItem("user_email") ?? payload.email ?? null,
+    name: localStorage.getItem("user_name") ?? payload.name ?? null,
+    username: localStorage.getItem("user_username") ?? null,
+  };
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-
-    if (token) {
-      const payload = decodeToken(token);
-
-      // 🔥 NEW: expiry check
-      if (payload?.exp && payload.exp * 1000 < Date.now()) {
-        logout();
-      } else if (payload) {
-        const storedId = localStorage.getItem("user_id");
-        const resolvedId =
-          storedId ??
-          payload.user_id ??
-          payload.id ??
-          payload.sub;
-
-        setUser({
-          id: resolvedId ? String(resolvedId) : null,
-          email: localStorage.getItem("user_email") ?? payload.email ?? null,
-          name: localStorage.getItem("user_name") ?? payload.name ?? null,
-          username: localStorage.getItem("user_username") ?? null,
-        });
-      }
-    }
-
-    setLoading(false);
+    const storedUser = getStoredUser();
+    startTransition(() => {
+      setUser(storedUser);
+      setLoading(false);
+    });
   }, []);
+
+  const logout = () => {
+    localStorage.clear();
+    setUser(null);
+  };
 
   const login = (token, userData = {}) => {
     localStorage.setItem("token", token);
@@ -62,7 +81,6 @@ export function AuthProvider({ children }) {
       localStorage.setItem("user_id", String(resolvedId));
     }
 
-    // 🔥 OPTIONAL: sensitive data reduce
     if (userData.email) localStorage.setItem("user_email", userData.email);
     if (userData.name) localStorage.setItem("user_name", userData.name);
     if (userData.username)
@@ -74,11 +92,6 @@ export function AuthProvider({ children }) {
       name: userData.name ?? null,
       username: userData.username ?? null,
     });
-  };
-
-  const logout = () => {
-    localStorage.clear(); // 🔥 simpler + safer
-    setUser(null);
   };
 
   return (

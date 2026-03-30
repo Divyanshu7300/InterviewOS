@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/axios";
 import { motion, AnimatePresence } from "framer-motion";
+import UserAvatar from "@/components/UserAvatar";
 
 const HeartIcon = ({ filled }) => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"}
@@ -25,26 +26,6 @@ const TrashIcon = () => (
     <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
   </svg>
 );
-
-const COLORS = [
-  "bg-blue-500/20 text-blue-300",
-  "bg-emerald-500/20 text-emerald-300",
-  "bg-amber-500/20 text-amber-300",
-  "bg-rose-500/20 text-rose-300",
-  "bg-purple-500/20 text-purple-300",
-];
-
-function Avatar({ name, size = "sm" }) {
-  const str      = name ?? "?";
-  const initials = str.replace("@", "").slice(0, 2).toUpperCase();
-  const color    = COLORS[str.charCodeAt(0) % COLORS.length];
-  const sz       = size === "sm" ? "w-8 h-8 text-[11px]" : "w-9 h-9 text-[12px]";
-  return (
-    <div className={`${sz} ${color} rounded-full flex items-center justify-center font-bold flex-shrink-0`}>
-      {initials}
-    </div>
-  );
-}
 
 function timeAgo(d) {
   const s = (Date.now() - new Date(d)) / 1000;
@@ -69,12 +50,11 @@ function ReplyComposer({ onSubmit, onCancel, userName }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
-      className="mt-3 rounded-xl border p-4 flex flex-col gap-3"
-      style={{ background: "var(--bg-secondary)", borderColor: "var(--border)" }}
+      className="mt-3 flex flex-col gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-secondary)] p-4"
     >
       <div className="flex items-center gap-2">
-        <Avatar name={userName} size="sm" />
-        <span className="text-[12px] font-medium" style={{ color: "var(--text-muted)" }}>{userName}</span>
+        <UserAvatar name={userName} size="sm" />
+        <span className="text-[12px] font-medium text-[var(--text-primary)]">{userName}</span>
       </div>
       <textarea
         value={text}
@@ -82,18 +62,15 @@ function ReplyComposer({ onSubmit, onCancel, userName }) {
         rows={2}
         placeholder="Write a reply..."
         autoFocus
-        className="w-full bg-transparent outline-none resize-none text-sm"
-        style={{ color: "var(--text-primary)" }}
+        className="w-full resize-none bg-transparent text-sm text-[var(--text-primary)] outline-none"
       />
       <div className="flex gap-2 justify-end">
         <button onClick={onCancel}
-          className="px-3 py-1.5 text-[12px] font-medium rounded-lg transition-all"
-          style={{ color: "var(--text-muted)" }}>
+          className="rounded-lg px-3 py-1.5 text-[12px] font-medium text-[var(--text-primary)] transition-all">
           Cancel
         </button>
         <button onClick={submit} disabled={!text.trim() || posting}
-          className="px-4 py-1.5 text-[12px] font-semibold rounded-lg transition-all disabled:opacity-40"
-          style={{ background: "var(--text-primary)", color: "var(--bg-primary)" }}>
+          className="rounded-lg bg-[var(--text-primary)] px-4 py-1.5 text-[12px] font-semibold text-[var(--bg-primary)] transition-all disabled:opacity-40">
           {posting ? "Posting…" : "Reply"}
         </button>
       </div>
@@ -117,7 +94,7 @@ function Comment({ comment, currentUser, likedIds, onLike, onReply, onDelete, de
       <div className="flex gap-3 py-5 border-b"
         style={{ borderColor: "var(--border)" }}>
 
-        <Avatar name={comment.user_name} />
+        <UserAvatar name={comment.user_name} size="sm" />
 
         <div className="flex-1 min-w-0">
           {/* Meta */}
@@ -125,7 +102,7 @@ function Comment({ comment, currentUser, likedIds, onLike, onReply, onDelete, de
             <span className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>
               {comment.user_name}
             </span>
-            <span className="text-[11px]" style={{ color: "var(--text-muted)" }}>
+            <span className="text-sm text-[var(--text-primary)]">
               {timeAgo(comment.created_at)}
             </span>
           </div>
@@ -142,7 +119,7 @@ function Comment({ comment, currentUser, likedIds, onLike, onReply, onDelete, de
             <button
               onClick={() => onLike(comment.id)}
               className="flex items-center gap-1.5 text-[12px] font-medium transition-all"
-              style={{ color: isLiked ? "#f43f5e" : "var(--text-muted)" }}
+              style={{ color: isLiked ? "#f43f5e" : "var(--text-primary)" }}
             >
               <HeartIcon filled={isLiked} />
               <span>{comment.likes || 0}</span>
@@ -152,8 +129,7 @@ function Comment({ comment, currentUser, likedIds, onLike, onReply, onDelete, de
             {currentUser && (
               <button
                 onClick={() => setShowReply(v => !v)}
-                className="flex items-center gap-1.5 text-[12px] font-medium transition-all"
-                style={{ color: "var(--text-muted)" }}
+                className="flex items-center gap-1.5 text-[12px] font-medium text-[var(--text-primary)] transition-all"
               >
                 <ReplyIcon />
                 Reply
@@ -164,8 +140,7 @@ function Comment({ comment, currentUser, likedIds, onLike, onReply, onDelete, de
             {isOwn && (
               <button
                 onClick={() => onDelete(comment.id)}
-                className="flex items-center gap-1.5 text-[12px] font-medium transition-all hover:text-rose-400"
-                style={{ color: "var(--text-muted)" }}
+                className="flex items-center gap-1.5 text-[12px] font-medium text-[var(--text-primary)] transition-all hover:text-rose-400"
               >
                 <TrashIcon />
                 Delete
@@ -235,7 +210,11 @@ export default function CommunityPage() {
   const handlePost = async () => {
     if (!text.trim()) return;
     setPosting(true);
-    await api.post("/community/comments", { user_name: userName, content: text });
+    await api.post("/community/comments", {
+      user_id: user?.id ? parseInt(user.id) : null,
+      user_name: userName,
+      content: text,
+    });
     setText("");
     setShowComposer(false);
     setPosting(false);
@@ -243,7 +222,12 @@ export default function CommunityPage() {
   };
 
   const handleReply = async (parentId, content) => {
-    await api.post("/community/comments", { user_name: userName, content, parent_id: parentId });
+    await api.post("/community/comments", {
+      user_id: user?.id ? parseInt(user.id) : null,
+      user_name: userName,
+      content,
+      parent_id: parentId,
+    });
     fetchComments();
   };
 
@@ -266,9 +250,8 @@ export default function CommunityPage() {
   };
 
   return (
-    <div className="min-h-screen pb-24 px-5"
-      style={{ paddingTop: "72px", background: "var(--bg-primary)" }}>
-      <div className="max-w-3xl mx-auto flex flex-col gap-8">
+    <div className="min-h-screen bg-[var(--bg-primary)] px-4 pb-24 pt-[80px] sm:px-5">
+      <div className="mx-auto flex max-w-5xl flex-col gap-8">
 
         {/* ── HEADER ── */}
         <motion.div
@@ -276,14 +259,13 @@ export default function CommunityPage() {
           transition={{ duration: 0.3 }}
           className="pt-6"
         >
-          <p className="text-[10px] font-semibold uppercase tracking-widest mb-1"
-            style={{ color: "var(--text-muted)" }}>
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-primary)]">
             Community
           </p>
-          <h1 className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
+          <h1 className="text-[32px] font-bold text-[var(--text-primary)]">
             Discussion
           </h1>
-          <p className="text-sm mt-1" style={{ color: "var(--text-muted)" }}>
+          <p className="mt-2 text-base text-[var(--text-primary)]">
             Ask questions and help other developers.
           </p>
         </motion.div>
@@ -297,8 +279,7 @@ export default function CommunityPage() {
                   key="btn"
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                   onClick={() => setShowComposer(true)}
-                  className="px-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
-                  style={{ background: "var(--text-primary)", color: "var(--bg-primary)" }}
+                  className="rounded-xl bg-[var(--text-primary)] px-5 py-2.5 text-sm font-semibold text-[var(--bg-primary)] transition-all"
                 >
                   + New Post
                 </motion.button>
@@ -306,12 +287,11 @@ export default function CommunityPage() {
                 <motion.div
                   key="composer"
                   initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                  className="rounded-2xl border p-5 flex flex-col gap-4"
-                  style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}
+                  className="flex flex-col gap-4 rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5"
                 >
                   <div className="flex items-center gap-3">
-                    <Avatar name={userName} size="md" />
-                    <span className="text-[13px] font-semibold" style={{ color: "var(--text-primary)" }}>
+                    <UserAvatar name={userName} size="md" />
+                    <span className="text-[13px] font-semibold text-[var(--text-primary)]">
                       {userName}
                     </span>
                   </div>
@@ -321,19 +301,15 @@ export default function CommunityPage() {
                     rows={4}
                     placeholder="What's on your mind?"
                     autoFocus
-                    className="w-full bg-transparent outline-none resize-none text-sm leading-relaxed"
-                    style={{ color: "var(--text-primary)" }}
+                    className="w-full resize-none bg-transparent text-sm leading-relaxed text-[var(--text-primary)] outline-none"
                   />
-                  <div className="flex gap-2 justify-end border-t pt-3"
-                    style={{ borderColor: "var(--border)" }}>
+                  <div className="flex justify-end gap-2 border-t border-[var(--border)] pt-3">
                     <button onClick={() => { setShowComposer(false); setText(""); }}
-                      className="px-4 py-2 text-[12px] font-medium rounded-xl transition-all"
-                      style={{ color: "var(--text-muted)" }}>
+                      className="rounded-xl px-4 py-2 text-[12px] font-medium text-[var(--text-primary)] transition-all">
                       Cancel
                     </button>
                     <button onClick={handlePost} disabled={!text.trim() || posting}
-                      className="px-5 py-2 text-[12px] font-semibold rounded-xl transition-all disabled:opacity-40"
-                      style={{ background: "var(--text-primary)", color: "var(--bg-primary)" }}>
+                      className="rounded-xl bg-[var(--text-primary)] px-5 py-2 text-[12px] font-semibold text-[var(--bg-primary)] transition-all disabled:opacity-40">
                       {posting ? "Posting…" : "Post"}
                     </button>
                   </div>
@@ -352,9 +328,8 @@ export default function CommunityPage() {
             ))}
           </div>
         ) : comments.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 rounded-2xl border"
-            style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}>
-            <p className="text-sm font-medium" style={{ color: "var(--text-muted)" }}>
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] py-16">
+            <p className="text-sm font-medium text-[var(--text-primary)]">
               No discussions yet — be the first to post!
             </p>
           </div>

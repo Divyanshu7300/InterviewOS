@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import api from "../../../lib/axios";
 import { useAuth } from "../../../context/AuthContext";
 import ProtectedRoute from "../../../components/ProtectedRoute";
 import { motion } from "framer-motion";
+import JDSelector from "../../../components/JDSelector";
 
 const LEVELS = ["EASY", "MEDIUM", "HARD"];
 const LEVEL_COLOR = {
@@ -21,37 +21,20 @@ const fadeUp = (delay = 0) => ({
   transition: { duration: 0.4, ease: [0.4, 0, 0.2, 1], delay },
 });
 
+const TARGET_ROUNDS = 24;
+
 export default function InterviewSetupPage() {
   const router   = useRouter();
   const { user } = useAuth();
 
   const [jdId,      setJdId]      = useState(null);
+  const [selectedJD, setSelectedJD] = useState(null);
   const [level,     setLevel]     = useState("MEDIUM");
-  const [jdList,    setJdList]    = useState([]);
-  const [jdLoading, setJdLoading] = useState(true);
   const [loading,   setLoading]   = useState(false);
   const [error,     setError]     = useState(null);
+  const [candidatePreferences, setCandidatePreferences] = useState("");
 
   const userId = user?.id ? parseInt(user.id) : null;
-
-  useEffect(() => {
-    // Auth still loading — wait
-    if (user === undefined) return;
-
-    // User not logged in
-    if (!userId) {
-      setJdLoading(false);
-      return;
-    }
-
-    setJdLoading(true);
-    setError(null);
-
-    api.get(`/jd/list`, { params: { user_id: userId } })
-      .then(r  => setJdList(r.data || []))
-      .catch(e => setError(e.response?.data?.detail || "Failed to load job descriptions."))
-      .finally(() => setJdLoading(false));
-  }, [userId, user]);
 
   const startInterview = async () => {
     if (!jdId)   return setError("Please select a Job Description.");
@@ -62,6 +45,7 @@ export default function InterviewSetupPage() {
         jd_id:   jdId,
         level,
         user_id: userId,
+        candidate_preferences: candidatePreferences.trim() || null,
       });
       sessionStorage.setItem("interviewSession", JSON.stringify({
         sessionId:     res.data.session_id,
@@ -70,6 +54,9 @@ export default function InterviewSetupPage() {
         firstQuestion: res.data.question,
         jdId,
         userId,
+        startedAt:     Date.now(),
+        targetRounds:  TARGET_ROUNDS,
+        candidatePreferences: candidatePreferences.trim(),
       }));
       router.push("/dashboard/interview/session");
     } catch (err) {
@@ -82,25 +69,20 @@ export default function InterviewSetupPage() {
     }
   };
 
-  const selectedJD = jdList.find(j => j.jd_id === jdId);
-
   return (
     <ProtectedRoute>
-      <div className="min-h-screen pb-32" style={{ paddingTop: "72px", background: "var(--bg-primary)" }}>
-        <div className="max-w-2xl mx-auto px-5 flex flex-col gap-10">
+      <div className="min-h-screen bg-[var(--bg-primary)] px-4 pb-32 pt-[80px] sm:px-5">
+        <div className="mx-auto flex max-w-5xl flex-col gap-8 sm:gap-10">
 
           {/* ── HERO ── */}
           <motion.div {...fadeUp(0)} className="pt-12 flex flex-col gap-3">
-            <p className="text-[11px] font-semibold tracking-[0.22em] uppercase"
-              style={{ color: "var(--text-muted)" }}>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--text-primary)]">
               Interview Setup
             </p>
-            <h1 className="text-[38px] font-extrabold tracking-tight leading-[1.08]"
-              style={{ color: "var(--text-primary)" }}>
+            <h1 className="text-[34px] font-extrabold leading-[1.02] tracking-tight text-[var(--text-primary)] sm:text-[44px]">
               Ready to practice?
             </h1>
-            <p className="text-[15px] font-light leading-relaxed"
-              style={{ color: "var(--text-muted)" }}>
+            <p className="max-w-2xl text-base leading-7 text-[var(--text-primary)] sm:text-[17px]">
               Pick a job description and difficulty. The AI will ask role-specific
               questions and score your answers in real time.
             </p>
@@ -108,9 +90,10 @@ export default function InterviewSetupPage() {
 
           {/* ── ERROR ── */}
           {error && (
-            <motion.div {...fadeUp(0)}
-              className="flex items-center gap-2 text-[13px] px-4 py-3 rounded-xl border"
-              style={{ background: "rgba(244,63,94,0.08)", color: "#fb7185", borderColor: "rgba(244,63,94,0.18)" }}>
+          <motion.div
+              {...fadeUp(0)}
+              className="flex items-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-[13px] text-rose-400"
+          >
               ⚠ {error}
             </motion.div>
           )}
@@ -118,152 +101,58 @@ export default function InterviewSetupPage() {
           {/* ── STEP 1 — JD ── */}
           <motion.div {...fadeUp(0.1)} className="flex flex-col gap-4">
             <div>
-              <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-1"
-                style={{ color: "var(--text-muted)" }}>
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-primary)]">
                 Step 1
               </p>
-              <h2 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>
+              <h2 className="text-2xl font-bold text-[var(--text-primary)]">
                 Select a Job Description
               </h2>
             </div>
-
-            {/* Auth/JD loading skeletons */}
-            {(user === undefined || jdLoading) && (
-              <div className="flex flex-col gap-3">
-                {[1, 2].map(i => (
-                  <div key={i} className="h-24 rounded-2xl border animate-pulse"
-                    style={{ background: "var(--bg-card)", borderColor: "var(--border)" }} />
-                ))}
-              </div>
-            )}
-
-            {/* Empty state */}
-            {user !== undefined && !jdLoading && jdList.length === 0 && (
-              <div className="rounded-2xl p-8 text-center border"
-                style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}>
-                <p className="text-3xl mb-3">📄</p>
-                <p className="text-sm font-semibold mb-1" style={{ color: "var(--text-primary)" }}>
-                  No JDs found
-                </p>
-                <p className="text-xs font-light mb-4" style={{ color: "var(--text-muted)" }}>
-                  Analyze a job description first to use it here.
-                </p>
-                <Link href="/dashboard/jd"
-                  className="text-xs font-bold px-4 py-2 rounded-xl no-underline transition-opacity hover:opacity-80 inline-block"
-                  style={{ background: "var(--text-primary)", color: "var(--bg-primary)" }}>
-                  Analyze a JD →
-                </Link>
-              </div>
-            )}
-
-            {/* JD List */}
-            {user !== undefined && !jdLoading && jdList.length > 0 && (
-              <div className="flex flex-col gap-3">
-                {jdList.map((jd, idx) => {
-                  const isSelected = jdId === jd.jd_id;
-                  return (
-                    <motion.div
-                      key={jd.jd_id}
-                      {...fadeUp(0.05 * idx)}
-                      onClick={() => setJdId(jd.jd_id)}
-                      className="rounded-2xl overflow-hidden cursor-pointer border transition-all duration-200"
-                      style={{
-                        background: "var(--bg-card)",
-                        borderColor: isSelected ? "var(--text-primary)" : "var(--border)",
-                        borderWidth: isSelected ? "1.5px" : "1px",
-                      }}
-                    >
-                      {/* Card body */}
-                      <div className="p-4 flex flex-col gap-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-semibold px-2 py-1 rounded-lg border"
-                              style={{ background: "var(--bg-secondary)", borderColor: "var(--border)", color: "var(--text-muted)" }}>
-                              #{jd.jd_id}
-                            </span>
-                            {jd.seniority_level && (
-                              <span className="text-[10px] font-semibold px-2 py-1 rounded-lg border"
-                                style={{ background: "var(--bg-secondary)", borderColor: "var(--border)", color: "var(--text-muted)" }}>
-                                {jd.seniority_level}
-                              </span>
-                            )}
-                          </div>
-                          {isSelected && (
-                            <span className="text-[11px] font-bold" style={{ color: "var(--text-primary)" }}>
-                              ✓ Selected
-                            </span>
-                          )}
-                        </div>
-
-                        <h3 className="text-[16px] font-bold leading-snug"
-                          style={{ color: "var(--text-primary)" }}>
-                          {jd.role_title || "Unknown Role"}
-                        </h3>
-
-                        {jd.experience_required && (
-                          <div className="flex items-center gap-1.5">
-                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
-                              stroke="currentColor" strokeWidth="2"
-                              style={{ color: "var(--text-muted)", flexShrink: 0 }}>
-                              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                            </svg>
-                            <span className="text-xs font-light" style={{ color: "var(--text-muted)" }}>
-                              {jd.experience_required}
-                            </span>
-                          </div>
-                        )}
-
-                        {jd.tech_stack?.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5">
-                            {jd.tech_stack.slice(0, 6).map(tech => (
-                              <span key={tech} className="text-[10px] px-2 py-1 rounded-lg border"
-                                style={{ background: "var(--bg-secondary)", borderColor: "var(--border)", color: "var(--text-muted)" }}>
-                                {tech}
-                              </span>
-                            ))}
-                            {jd.tech_stack.length > 6 && (
-                              <span className="text-[10px] px-2 py-1 rounded-lg"
-                                style={{ color: "var(--text-muted)", opacity: 0.5 }}>
-                                +{jd.tech_stack.length - 6}
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Card footer */}
-                      <div className="px-4 py-3 border-t flex items-center justify-between"
-                        style={{ borderColor: "var(--border)" }}>
-                        <span className="text-[12px] font-semibold"
-                          style={{ color: isSelected ? "var(--text-primary)" : "var(--text-muted)" }}>
-                          {isSelected ? "Selected for interview" : "Click to select →"}
-                        </span>
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none"
-                          stroke="currentColor" strokeWidth="2"
-                          style={{ color: "var(--text-muted)" }}>
-                          <path d="M5 12h14M12 5l7 7-7 7"/>
-                        </svg>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            )}
+            <JDSelector
+              selectedId={jdId}
+              onSelect={(nextId, jd) => {
+                setJdId(nextId);
+                setSelectedJD(jd || null);
+              }}
+              placeholder="No job descriptions found yet."
+              title="Select the role you want to simulate"
+              description="Use the same role context you prepared for in Resume Analysis so your mock interview stays consistent and realistic."
+            />
           </motion.div>
 
-          {/* ── STEP 2 — DIFFICULTY ── */}
-          <motion.div {...fadeUp(0.18)} className="flex flex-col gap-4">
+          <motion.div {...fadeUp(0.16)} className="flex flex-col gap-3">
             <div>
-              <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-1"
-                style={{ color: "var(--text-muted)" }}>
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-primary)]">
                 Step 2
               </p>
-              <h2 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>
+              <h2 className="text-2xl font-bold text-[var(--text-primary)]">
+                Add Interview Guidance
+              </h2>
+              <p className="mt-2 text-base leading-7 text-[var(--text-primary)]">
+                Share what you already know well or what you want more focus on. Example: I know Python well, ask fewer Python questions and focus more on system design.
+              </p>
+            </div>
+            <textarea
+              value={candidatePreferences}
+              onChange={(e) => setCandidatePreferences(e.target.value)}
+              rows={4}
+              placeholder="Add any interview instructions for the AI interviewer..."
+              className="w-full resize-none rounded-[26px] border border-[var(--border)] bg-[var(--bg-card)] px-4 py-4 text-base text-[var(--text-primary)] outline-none sm:px-5"
+            />
+          </motion.div>
+
+          {/* ── STEP 3 — DIFFICULTY ── */}
+          <motion.div {...fadeUp(0.18)} className="flex flex-col gap-4">
+            <div>
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-primary)]">
+                Step 3
+              </p>
+              <h2 className="text-2xl font-bold text-[var(--text-primary)]">
                 Choose Difficulty
               </h2>
             </div>
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               {LEVELS.map(l => {
                 const c      = LEVEL_COLOR[l];
                 const active = level === l;
@@ -271,14 +160,9 @@ export default function InterviewSetupPage() {
                   <button
                     key={l}
                     onClick={() => setLevel(l)}
-                    className={`py-3.5 rounded-xl border text-sm font-bold tracking-wide transition-all duration-200 ${
-                      active ? `${c.bg} ${c.border} ${c.text}` : ""
-                    }`}
-                    style={!active ? {
-                      background: "var(--bg-card)",
-                      borderColor: "var(--border)",
-                      color: "var(--text-muted)",
-                    } : {}}>
+                    className={`rounded-[22px] border py-4 text-base font-bold tracking-wide transition-all duration-200 ${
+                      active ? `${c.bg} ${c.border} ${c.text}` : "border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-primary)]"
+                    }`}>
                     {l}
                   </button>
                 );
@@ -291,16 +175,14 @@ export default function InterviewSetupPage() {
             <button
               onClick={startInterview}
               disabled={loading || !jdId}
-              className="w-full py-3.5 rounded-xl text-sm font-bold tracking-wide transition-all duration-200 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              style={{ background: "var(--text-primary)", color: "var(--bg-primary)" }}>
+              className="flex w-full items-center justify-center gap-2 rounded-[24px] bg-[var(--text-primary)] py-4 text-base font-bold tracking-wide text-[var(--bg-primary)] transition-all duration-200 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40">
               {loading ? (
                 <>
-                  <span className="w-4 h-4 border-2 rounded-full animate-spin inline-block"
-                    style={{ borderColor: "rgba(0,0,0,0.2)", borderTopColor: "var(--bg-primary)" }} />
+                  <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-black/20 border-t-[var(--bg-primary)]" />
                   Starting…
                 </>
               ) : jdId ? (
-                `Start Interview — ${selectedJD?.role_title || "Selected JD"} →`
+                `Start Interview - ${selectedJD?.role_title || "Selected JD"}`
               ) : (
                 "Select a JD to continue"
               )}

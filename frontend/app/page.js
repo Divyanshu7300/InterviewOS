@@ -28,7 +28,7 @@ export default function Home() {
 
         <p className="mb-8 text-lg"
           style={{ color: "var(--text-muted)" }}>
-          Practice interviews. Analyze resumes. Improve faster.
+          Practice interviews, analyze resumes, and build targeted skills faster.
         </p>
 
         <div className="flex items-center justify-center gap-3">
