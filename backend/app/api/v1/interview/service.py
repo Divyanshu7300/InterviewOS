@@ -14,6 +14,8 @@ from app.services.ai_interviewer.scorer import score_answer
 from app.services.ai_interviewer.feedback import next_difficulty
 from app.services.ai_interviewer.summary import generate_summary
 
+DEFAULT_INTERVIEW_TARGET_ROUNDS = 20
+
 
 def get_jd_context(db: Session, jd_id: int) -> dict:
     jd = db.query(JobDescription).filter_by(id=jd_id).first()
@@ -69,7 +71,12 @@ def _trend_label(series: list[float]) -> str:
     return "steady"
 
 
-def compute_session_insights(evaluations: list[dict], target_rounds: int = 5) -> dict:
+def compute_session_insights(
+    evaluations: list[dict],
+    target_rounds: int = DEFAULT_INTERVIEW_TARGET_ROUNDS,
+) -> dict:
+    safe_target_rounds = max(target_rounds, 1)
+    responses_completed = len(evaluations)
     skill_scores = {
         "confidence": _avg([item["scores"]["confidence"] for item in evaluations]),
         "correctness": _avg([item["scores"]["correctness"] for item in evaluations]),
@@ -96,7 +103,9 @@ def compute_session_insights(evaluations: list[dict], target_rounds: int = 5) ->
     return {
         "confidence": skill_scores["confidence"],
         "momentum": _trend_label(trend),
-        "response_progress": round((len(evaluations) / target_rounds) * 100, 2),
+        "response_progress": round(min((responses_completed / safe_target_rounds) * 100, 100), 2),
+        "responses_completed": responses_completed,
+        "target_rounds": safe_target_rounds,
         "best_signal": best_signal,
         "weakest_signal": weakest_signal,
         "session_dna": _session_dna(skill_scores),

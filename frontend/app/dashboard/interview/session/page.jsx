@@ -12,7 +12,9 @@ const LEVEL_COLOR = {
 };
 
 const BAR_HEIGHTS = [8, 14, 20, 12, 24, 10, 18, 22, 8, 16, 26, 10, 20, 14, 18, 12];
-const TARGET_ROUNDS = 24;
+const TARGET_ROUNDS = 20;
+const SILENCE_TIMEOUT_MS = 2600;
+const MOBILE_SILENCE_TIMEOUT_MS = 3600;
 const METRIC_META = {
   confidence: { label: "Confidence", accent: "#a78bfa" },
   correctness: { label: "Correctness", accent: "#4ade80" },
@@ -20,8 +22,42 @@ const METRIC_META = {
   clarity: { label: "Clarity", accent: "#f59e0b" },
 };
 
+function getApiErrorMessage(err, fallback) {
+  const detail = err?.response?.data?.detail;
+
+  if (Array.isArray(detail)) {
+    return detail.map((item) => item?.msg || JSON.stringify(item)).join(", ");
+  }
+
+  if (detail && typeof detail === "object") {
+    return detail.message || detail.error || JSON.stringify(detail);
+  }
+
+  if (typeof detail === "string" && detail.trim()) {
+    return detail;
+  }
+
+  if (err?.response?.status === 429) {
+    return "Daily interview/token limit reached. Try again tomorrow.";
+  }
+
+  return fallback;
+}
+
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const average = (items) => items.length ? items.reduce((sum, item) => sum + item, 0) / items.length : 0;
+const cleanTranscript = (text = "") => text.trim().replace(/\s+/g, " ");
+
+function appendTranscript(base, nextPart) {
+  const normalizedBase = cleanTranscript(base);
+  const normalizedNext = cleanTranscript(nextPart);
+
+  if (!normalizedNext) return normalizedBase;
+  if (!normalizedBase) return normalizedNext;
+  if (normalizedBase.endsWith(normalizedNext)) return normalizedBase;
+
+  return `${normalizedBase} ${normalizedNext}`.trim();
+}
 
 function deriveInterviewAnalytics(messages, currentLevel) {
   const answers = messages.filter(message => message.role === "user");
@@ -154,6 +190,10 @@ export default function InterviewSessionPage() {
   const [error,        setError]        = useState(null);
   const [micOn,        setMicOn]        = useState(false);
   const [voiceMode,    setVoiceMode]    = useState(true);
+  const [speechSupported, setSpeechSupported] = useState(true);
+  const [pushToTalkMode, setPushToTalkMode] = useState(false);
+  const [autoSubmitEnabled, setAutoSubmitEnabled] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
   const [ending,       setEnding]       = useState(false); // ← new
   const [liveInsights, setLiveInsights] = useState(null);
   const [lastEvaluation, setLastEvaluation] = useState(null);
@@ -165,13 +205,19 @@ export default function InterviewSessionPage() {
   const recordedChunksRef = useRef([]);
   const [recording,    setRecording]    = useState(false);
   const [recordedUrl,  setRecordedUrl]  = useState(null);
+  const micStreamRef = useRef(null);
 
   const recognitionRef  = useRef(null);
   const silenceTimerRef = useRef(null);
+  const restartTimerRef = useRef(null);
   const hasInitialized  = useRef(false);
   const ttsSpokenRef    = useRef(new Set());
   const transcriptEnd   = useRef(null);
   const finalTranscriptRef = useRef("");
+  const manualStopRef = useRef(false);
+  const autoSubmitOnSilenceRef = useRef(false);
+  const lastFinalChunkRef = useRef("");
+  const pushToTalkPressedRef = useRef(false);
 
   const answerRef      = useRef("");
   const sessionRef     = useRef(null);
@@ -194,13 +240,61 @@ export default function InterviewSessionPage() {
   useEffect(() => { loadingRef.current    = loading;    }, [loading]);
   useEffect(() => { aiSpeakingRef.current = aiSpeaking; }, [aiSpeaking]);
   useEffect(() => { transcriptEnd.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setSpeechSupported(Boolean(window.SpeechRecognition || window.webkitSpeechRecognition));
+    setIsMobile(window.matchMedia("(pointer: coarse)").matches || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent));
+  }, []);
+
+  const releaseMicAccess = () => {
+    micStreamRef.current?.getTracks().forEach((track) => track.stop());
+    micStreamRef.current = null;
+  };
+
+  const ensureMicAccess = async () => {
+    if (micStreamRef.current || typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) {
+      return true;
+    }
+
+    try {
+      micStreamRef.current = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          channelCount: 1,
+        },
+      });
+      return true;
+    } catch {
+      setError("Microphone permission blocked. Allow mic access and try again.");
+      return false;
+    }
+  };
 
   // ── stopListening ──────────────────────────────────────────────────────────
-  const stopListening = () => {
+  const stopListening = ({ manual = true } = {}) => {
+    manualStopRef.current = manual;
+    pushToTalkPressedRef.current = false;
     clearTimeout(silenceTimerRef.current);
-    recognitionRef.current?.stop();
+    clearTimeout(restartTimerRef.current);
+
+    const activeRecognition = recognitionRef.current;
+    recognitionRef.current = null;
+
+    if (activeRecognition) {
+      try {
+        activeRecognition.stop();
+      } catch {
+        try {
+          activeRecognition.abort();
+        } catch {}
+      }
+    }
+
     recognitionRef.current = null;
     setMicOn(false);
+    releaseMicAccess();
   };
 
   // ── doSubmit ───────────────────────────────────────────────────────────────
@@ -245,8 +339,7 @@ export default function InterviewSessionPage() {
       setMessagesSync(prev => [...prev, { role: "assistant", content: nextQ }]);
       setTimeout(() => speakOnce(nextQ), 300);
     } catch (err) {
-      const detail = err?.response?.data?.detail;
-      setError(typeof detail === "string" ? detail : "Could not submit your answer. Please try again.");
+      setError(getApiErrorMessage(err, "Could not submit your answer. Please try again."));
     } finally {
       loadingRef.current = false;
       setLoading(false);
@@ -272,72 +365,135 @@ export default function InterviewSessionPage() {
     const onDone = () => {
       aiSpeakingRef.current = false;
       setAiSpeaking(false);
-      if (voiceModeRef.current) startListening();
+      if (voiceModeRef.current && !pushToTalkMode) {
+        startListening({ autoSubmitOnSilence: autoSubmitEnabled });
+      }
     };
     utt.onend = utt.onerror = onDone;
     window.speechSynthesis.speak(utt);
   };
 
   // ── startListening ─────────────────────────────────────────────────────────
-  const startListening = () => {
+  const startListening = async ({ autoSubmitOnSilence = false } = {}) => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) return;
-    if (recognitionRef.current) recognitionRef.current.abort();
+    if (!SR) {
+      setSpeechSupported(false);
+      setVoiceMode(false);
+      return;
+    }
+    if (loadingRef.current || aiSpeakingRef.current) return;
+    if (!(await ensureMicAccess())) return;
+
+    manualStopRef.current = false;
+    autoSubmitOnSilenceRef.current = autoSubmitOnSilence;
+    clearTimeout(restartTimerRef.current);
+
+    if (recognitionRef.current) {
+      stopListening({ manual: false });
+    }
 
     const rec = new SR();
-    rec.lang = "en-US";
-    rec.continuous = true;
+    rec.lang = navigator.language || "en-US";
+    rec.continuous = !isMobile;
     rec.interimResults = true;
     rec.maxAlternatives = 1;
     recognitionRef.current = rec;
 
-    finalTranscriptRef.current = "";
+    finalTranscriptRef.current = cleanTranscript(answerRef.current);
+    lastFinalChunkRef.current = "";
     let interimText = "";
-    const clean = t => t.trim().replace(/\s+/g, " ");
 
-    rec.onstart  = () => setMicOn(true);
-    rec.onerror  = e  => {
-      if (e.error !== "no-speech" && e.error !== "aborted") setMicOn(false);
+    rec.onstart  = () => {
+      setMicOn(true);
+      setError(null);
     };
+
+    rec.onerror  = (e)  => {
+      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+        setVoiceMode(false);
+        voiceModeRef.current = false;
+        manualStopRef.current = true;
+        setError("Microphone permission blocked. Allow mic access and try again.");
+      } else if (e.error === "audio-capture") {
+        setError("No microphone detected. Connect a mic and try again.");
+      } else if (e.error === "network") {
+        setError("Speech recognition network issue. Please try again.");
+      }
+    };
+
     rec.onend    = ()  => {
       setMicOn(false);
+      clearTimeout(silenceTimerRef.current);
+
+      if (recognitionRef.current === rec) {
+        recognitionRef.current = null;
+      }
+
       if (
         voiceModeRef.current &&
         !loadingRef.current &&
         !aiSpeakingRef.current &&
-        answerRef.current.trim() &&
-        recognitionRef.current === rec
+        !manualStopRef.current &&
+        !pushToTalkPressedRef.current &&
+        !pushToTalkMode
       ) {
-        setTimeout(() => startListening(), 150);
+        restartTimerRef.current = setTimeout(() => {
+          startListening({ autoSubmitOnSilence: autoSubmitOnSilenceRef.current });
+        }, 250);
       }
     };
-    rec.onresult = e  => {
+
+    rec.onresult = (e)  => {
+      const finalChunks = [];
+
       for (let i = e.resultIndex; i < e.results.length; i++) {
         const t = e.results[i][0].transcript;
         if (e.results[i].isFinal) {
-          const nextPart = clean(t);
-          finalTranscriptRef.current = [finalTranscriptRef.current, nextPart].filter(Boolean).join(" ").trim();
-          interimText = "";
+          const nextPart = cleanTranscript(t);
+          if (nextPart && nextPart !== lastFinalChunkRef.current) {
+            finalChunks.push(nextPart);
+            lastFinalChunkRef.current = nextPart;
+          }
         } else {
-          interimText = clean(t);
+          interimText = cleanTranscript(t);
         }
       }
-      const display = [finalTranscriptRef.current, interimText].filter(Boolean).join(" ").trim();
+
+      if (finalChunks.length) {
+        finalTranscriptRef.current = finalChunks.reduce(
+          (acc, chunk) => appendTranscript(acc, chunk),
+          finalTranscriptRef.current
+        );
+        interimText = "";
+      }
+
+      const display = appendTranscript(finalTranscriptRef.current, interimText);
       setAnswer(display);
       answerRef.current = display;
 
       clearTimeout(silenceTimerRef.current);
       silenceTimerRef.current = setTimeout(() => {
-        const final = [finalTranscriptRef.current, interimText].filter(Boolean).join(" ").trim();
+        const final = appendTranscript(finalTranscriptRef.current, interimText);
         if (final) {
           answerRef.current = final;
           setAnswer(final);
           stopListening();
-          setTimeout(() => doSubmit(answerRef.current), 100);
+          if (autoSubmitOnSilenceRef.current) {
+            setTimeout(() => doSubmit(final), 120);
+          }
+        } else {
+          stopListening({ manual: false });
         }
-      }, 3500);
+      }, isMobile ? MOBILE_SILENCE_TIMEOUT_MS : SILENCE_TIMEOUT_MS);
     };
-    rec.start();
+
+    try {
+      rec.start();
+    } catch {
+      setMicOn(false);
+      recognitionRef.current = null;
+      setError("Could not start voice input. Please try once more.");
+    }
   };
 
   // ── Init ───────────────────────────────────────────────────────────────────
@@ -369,7 +525,30 @@ export default function InterviewSessionPage() {
   }, []);
   /* eslint-enable react-hooks/exhaustive-deps */
 
-  useEffect(() => () => { stopListening(); window.speechSynthesis?.cancel(); }, []);
+  /* eslint-disable react-hooks/exhaustive-deps */
+  useEffect(() => () => {
+    stopListening();
+    window.speechSynthesis?.cancel();
+  }, []);
+  /* eslint-enable react-hooks/exhaustive-deps */
+
+  const startPressToTalk = async () => {
+    if (!voiceMode || !speechSupported || aiSpeakingRef.current || loadingRef.current) return;
+    pushToTalkPressedRef.current = true;
+    await startListening({ autoSubmitOnSilence: autoSubmitEnabled });
+  };
+
+  const endPressToTalk = () => {
+    if (!pushToTalkPressedRef.current) return;
+    pushToTalkPressedRef.current = false;
+    if (micOn) {
+      const final = cleanTranscript(answerRef.current);
+      stopListening();
+      if (final && autoSubmitEnabled) {
+        setTimeout(() => doSubmit(final), 120);
+      }
+    }
+  };
 
   // ── Camera ─────────────────────────────────────────────────────────────────
   const startCamera = async () => {
@@ -472,7 +651,7 @@ export default function InterviewSessionPage() {
   const lc = LEVEL_COLOR[currentLevel] || LEVEL_COLOR.MEDIUM;
   const fallbackAnalytics = deriveInterviewAnalytics(messages, currentLevel);
   const analytics = liveInsights ? {
-    answeredCount: Math.round((liveInsights.response_progress / 100) * (session.targetRounds || TARGET_ROUNDS)),
+    answeredCount: liveInsights.responses_completed ?? fallbackAnalytics.answeredCount,
     progressPct: liveInsights.response_progress,
     metricAverages: {
       confidence: liveInsights.skill_scores.confidence ?? 0,
@@ -552,7 +731,7 @@ export default function InterviewSessionPage() {
               <div className="px-4 py-4 flex flex-col gap-4">
                 <div className="flex flex-wrap gap-2">
                   <StatChip label="Momentum" value={analytics.momentumLabel} accent="#38bdf8" />
-                  <StatChip label="Responses" value={`${analytics.answeredCount}/${session.targetRounds || TARGET_ROUNDS}`} accent="#4ade80" />
+                  <StatChip label="Responses" value={`${analytics.answeredCount} answered`} accent="#4ade80" />
                   <StatChip label="Time" value={`${durationMinutes} min`} accent="#f59e0b" />
                   <StatChip label="Overall" value={lastEvaluation ? `${lastEvaluation.score.toFixed(1)}/10` : "—"} accent="#a78bfa" />
                 </div>
@@ -563,7 +742,7 @@ export default function InterviewSessionPage() {
                       Confidence Track
                     </span>
                     <span className="text-sm font-medium text-[var(--text-primary)]">
-                      {Math.round(analytics.progressPct)}% to full mock
+                      {Math.round(analytics.progressPct)}% of 20-question benchmark
                     </span>
                   </div>
                   <div className="h-2.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.08)" }}>
@@ -642,29 +821,101 @@ export default function InterviewSessionPage() {
                     </div>
                   )}
                   <span className="text-[12px] font-light text-[var(--text-primary)]">
-                    {micOn ? "Listening…" : aiSpeaking ? "AI speaking…" : loading ? "Evaluating…" : "Ready"}
+                    {!speechSupported ? "Voice unavailable" : micOn ? "Listening…" : aiSpeaking ? "AI speaking…" : loading ? "Evaluating…" : "Ready"}
                   </span>
                 </div>
-                <button
-                  onClick={() => { const next = !voiceMode; setVoiceMode(next); voiceModeRef.current = next; if (!next) stopListening(); }}
-                  className="text-[11px] font-semibold px-3 py-1 rounded-full border transition-all"
-                  style={voiceMode
-                    ? { background: "var(--bg-card)", borderColor: "var(--text-primary)", color: "var(--text-primary)" }
-                    : { background: "var(--bg-card)", borderColor: "var(--border)",       color: "var(--text-primary)" }}>
-                  {voiceMode ? "Voice ON" : "Voice OFF"}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      if (!speechSupported) return;
+                      const next = !voiceMode;
+                      setVoiceMode(next);
+                      voiceModeRef.current = next;
+                      if (!next) stopListening();
+                    }}
+                    disabled={!speechSupported}
+                    className="text-[11px] font-semibold px-3 py-1 rounded-full border transition-all"
+                    style={voiceMode
+                      ? { background: "var(--bg-card)", borderColor: "var(--text-primary)", color: "var(--text-primary)" }
+                      : { background: "var(--bg-card)", borderColor: "var(--border)",       color: "var(--text-primary)" }}>
+                    {!speechSupported ? "Voice N/A" : voiceMode ? "Voice ON" : "Voice OFF"}
+                  </button>
+                </div>
               </div>
 
-              <div className="flex gap-2">
-                {voiceMode && (
+              {voiceMode && speechSupported && (
+                <div className="flex flex-wrap gap-2">
                   <button
-                    onClick={() => { if (micOn) stopListening(); else if (!aiSpeakingRef.current && !loadingRef.current) startListening(); }}
-                    className={`px-3 py-2.5 rounded-xl border text-sm transition-all flex-shrink-0 ${
-                      micOn ? "text-red-400 bg-red-500/10 border-red-500/20" : ""
-                    }`}
-                    style={!micOn ? { background: "var(--bg-card)", borderColor: "var(--border)", color: "var(--text-primary)" } : {}}>
-                    {micOn ? "■" : "🎙"}
+                    onClick={() => {
+                      setPushToTalkMode(false);
+                      if (micOn) stopListening();
+                    }}
+                    className="rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-all"
+                    style={pushToTalkMode
+                      ? { background: "var(--bg-card)", borderColor: "var(--border)", color: "var(--text-primary)" }
+                      : { background: "var(--text-primary)", borderColor: "var(--text-primary)", color: "var(--bg-primary)" }}>
+                    Hands-free
                   </button>
+                  <button
+                    onClick={() => {
+                      setPushToTalkMode(true);
+                      if (micOn) stopListening();
+                    }}
+                    className="rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-all"
+                    style={pushToTalkMode
+                      ? { background: "var(--text-primary)", borderColor: "var(--text-primary)", color: "var(--bg-primary)" }
+                      : { background: "var(--bg-card)", borderColor: "var(--border)", color: "var(--text-primary)" }}>
+                    Push to Talk
+                  </button>
+                  <button
+                    onClick={() => setAutoSubmitEnabled((prev) => !prev)}
+                    className="rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-all"
+                    style={autoSubmitEnabled
+                      ? { background: "var(--bg-card)", borderColor: "var(--text-primary)", color: "var(--text-primary)" }
+                      : { background: "var(--bg-card)", borderColor: "var(--border)", color: "var(--text-primary)" }}>
+                    {autoSubmitEnabled ? "Auto-submit ON" : "Auto-submit OFF"}
+                  </button>
+                  {isMobile && (
+                    <span
+                      className="rounded-full border px-3 py-1.5 text-[11px] font-semibold"
+                      style={{ background: "var(--bg-card)", borderColor: "var(--border)", color: "var(--text-primary)" }}>
+                      Mobile mic tuned
+                    </span>
+                  )}
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                {voiceMode && speechSupported && (
+                  pushToTalkMode ? (
+                    <button
+                      onMouseDown={(e) => { e.preventDefault(); startPressToTalk(); }}
+                      onMouseUp={endPressToTalk}
+                      onMouseLeave={endPressToTalk}
+                      onTouchStart={(e) => { e.preventDefault(); startPressToTalk(); }}
+                      onTouchEnd={endPressToTalk}
+                      onTouchCancel={endPressToTalk}
+                      disabled={aiSpeaking || loading}
+                      className={`px-4 py-2.5 rounded-xl border text-sm font-semibold transition-all flex-shrink-0 ${
+                        micOn ? "text-red-400 bg-red-500/10 border-red-500/20" : ""
+                      }`}
+                      style={!micOn ? { background: "var(--bg-card)", borderColor: "var(--border)", color: "var(--text-primary)" } : {}}>
+                      {micOn ? "Release to stop" : "Hold to talk"}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        if (micOn) stopListening();
+                        else if (!aiSpeakingRef.current && !loadingRef.current) startListening({ autoSubmitOnSilence: autoSubmitEnabled });
+                      }}
+                      disabled={aiSpeaking || loading}
+                      className={`px-3 py-2.5 rounded-xl border text-sm transition-all flex-shrink-0 ${
+                        micOn ? "text-red-400 bg-red-500/10 border-red-500/20" : ""
+                      }`}
+                      style={!micOn ? { background: "var(--bg-card)", borderColor: "var(--border)", color: "var(--text-primary)" } : {}}>
+                      {micOn ? "Stop" : "Mic"}
+                    </button>
+                  )
                 )}
                 <textarea
                   value={answer}

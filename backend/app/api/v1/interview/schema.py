@@ -81,6 +81,8 @@ class SessionIntelligence(BaseModel):
     confidence: float
     momentum: str
     response_progress: float
+    responses_completed: int
+    target_rounds: int
     best_signal: str
     weakest_signal: str
     session_dna: str

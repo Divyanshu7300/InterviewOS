@@ -126,7 +126,7 @@ export default function ProfilePage() {
   const xpInLevel = totalXp % 1000;
 
   const tokensUsed      = tokenStats?.used      ?? 0;
-  const tokenLimit      = tokenStats?.limit     ?? 10000;
+  const tokenLimit      = tokenStats?.limit     ?? 50000;
   const tokensRemaining = tokenStats?.remaining ?? tokenLimit;
   const tokenPct        = Math.min((tokensUsed / tokenLimit) * 100, 100);
   const tokenColor      = tokenPct > 80 ? "bg-rose-400" : tokenPct > 50 ? "bg-amber-400" : "bg-emerald-400";

@@ -122,7 +122,10 @@ def get_questions(
 
     try:
         questions, source = get_or_generate_questions(
-            db=db, topic=topic, skill_name=skill.name, count=count
+            db=db,
+            topic=topic,
+            skill_name=skill.name,
+            count=count,
         )
     except RuntimeError as e:
         raise HTTPException(status_code=500, detail=str(e))

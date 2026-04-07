@@ -21,7 +21,29 @@ const fadeUp = (delay = 0) => ({
   transition: { duration: 0.4, ease: [0.4, 0, 0.2, 1], delay },
 });
 
-const TARGET_ROUNDS = 24;
+const TARGET_ROUNDS = 20;
+
+function getApiErrorMessage(err, fallback) {
+  const detail = err?.response?.data?.detail;
+
+  if (Array.isArray(detail)) {
+    return detail.map((item) => item?.msg || JSON.stringify(item)).join(", ");
+  }
+
+  if (detail && typeof detail === "object") {
+    return detail.message || detail.error || JSON.stringify(detail);
+  }
+
+  if (typeof detail === "string" && detail.trim()) {
+    return detail;
+  }
+
+  if (err?.response?.status === 429) {
+    return "Daily interview/token limit reached. Try again tomorrow.";
+  }
+
+  return fallback;
+}
 
 export default function InterviewSetupPage() {
   const router   = useRouter();
@@ -60,10 +82,7 @@ export default function InterviewSetupPage() {
       }));
       router.push("/dashboard/interview/session");
     } catch (err) {
-      const detail = err.response?.data?.detail;
-      if (Array.isArray(detail))                     setError(detail.map(d => d.msg || JSON.stringify(d)).join(", "));
-      else if (detail && typeof detail === "object")  setError(JSON.stringify(detail));
-      else                                            setError(detail || "Could not start interview.");
+      setError(getApiErrorMessage(err, "Could not start interview."));
     } finally {
       setLoading(false);
     }

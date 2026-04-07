@@ -14,6 +14,8 @@ const LEVEL = {
   ADVANCED:     { text: "text-rose-400",    bg: "bg-rose-500/10",    border: "border-rose-500/20",    dot: "bg-rose-400"    },
 };
 
+const COLLAPSED_SKILL_COUNT = 8;
+
 function SkeletonCard() {
   return (
     <div className="h-36 animate-pulse rounded-2xl bg-[var(--bg-secondary)]" />
@@ -30,6 +32,7 @@ export default function LearnPage() {
   const [loadingSkills,  setLoadingSkills]  = useState(true);
   const [loadingTopics,  setLoadingTopics]  = useState(false);
   const [error,          setError]          = useState(null);
+  const [skillsExpanded, setSkillsExpanded] = useState(false);
 
   useEffect(() => {
     api.get("/learn/skills")
@@ -84,6 +87,14 @@ export default function LearnPage() {
   ];
 
   const completedCount = allTopics.filter(t => t.completed).length;
+  const hasOverflowSkills = skills.length > COLLAPSED_SKILL_COUNT;
+  const collapsedSkills = skills.slice(0, COLLAPSED_SKILL_COUNT);
+  const selectedInCollapsed = collapsedSkills.some(skill => skill.id === selectedSkill?.id);
+  const visibleSkills = !hasOverflowSkills || skillsExpanded
+    ? skills
+    : selectedSkill && !selectedInCollapsed
+      ? [...collapsedSkills.slice(0, COLLAPSED_SKILL_COUNT - 1), selectedSkill]
+      : collapsedSkills;
 
   return (
     <ProtectedRoute>
@@ -151,43 +162,60 @@ export default function LearnPage() {
           <motion.div
             initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.05 }}
-            className="flex flex-wrap gap-2"
+            className="flex flex-col gap-3"
           >
-            {loadingSkills
-              ? Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className="h-9 w-24 animate-pulse rounded-xl bg-[var(--bg-secondary)]" />
-                ))
-              : skills.map(skill => {
-                  const active = selectedSkill?.id === skill.id;
-                  return (
-                    <button
-                      key={skill.id}
-                      onClick={() => fetchTopics(skill)}
-                    className="flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-all duration-150"
-                      style={{
-                        background:  active ? "var(--text-primary)" : "var(--bg-card)",
-                        color:       active ? "var(--bg-primary)"   : "var(--text-primary)",
-                        borderColor: active ? "var(--text-primary)" : "var(--border)",
-                      }}
-                    >
-                      {skill.logo_url ? (
-                        <Image
-                          src={skill.logo_url}
-                          alt={`${skill.name} logo`}
-                          width={16}
-                          height={16}
-                          unoptimized
-                          className="h-4 w-4 object-contain"
-                          style={{ filter: active && skill.slug === "nextjs" ? "invert(1)" : "none" }}
-                        />
-                      ) : skill.icon ? (
-                        <span>{skill.icon}</span>
-                      ) : null}
-                      {skill.name}
-                    </button>
-                  );
-                })
-            }
+            <div className="flex flex-wrap gap-2">
+              {loadingSkills
+                ? Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="h-9 w-24 animate-pulse rounded-xl bg-[var(--bg-secondary)]" />
+                  ))
+                : visibleSkills.map(skill => {
+                    const active = selectedSkill?.id === skill.id;
+                    return (
+                      <button
+                        key={skill.id}
+                        onClick={() => fetchTopics(skill)}
+                        className="flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-all duration-150"
+                        style={{
+                          background:  active ? "var(--text-primary)" : "var(--bg-card)",
+                          color:       active ? "var(--bg-primary)"   : "var(--text-primary)",
+                          borderColor: active ? "var(--text-primary)" : "var(--border)",
+                        }}
+                      >
+                        {skill.logo_url ? (
+                          <Image
+                            src={skill.logo_url}
+                            alt={`${skill.name} logo`}
+                            width={16}
+                            height={16}
+                            unoptimized
+                            className="h-4 w-4 object-contain"
+                            style={{ filter: active && skill.slug === "nextjs" ? "invert(1)" : "none" }}
+                          />
+                        ) : skill.icon ? (
+                          <span>{skill.icon}</span>
+                        ) : null}
+                        {skill.name}
+                      </button>
+                    );
+                  })
+              }
+            </div>
+
+            {!loadingSkills && hasOverflowSkills && (
+              <button
+                onClick={() => setSkillsExpanded((prev) => !prev)}
+                className="flex w-fit items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-xs font-semibold text-[var(--text-primary)] transition-all"
+              >
+                <span>{skillsExpanded ? "Show Less" : `Show All Skills (${skills.length})`}</span>
+                <span
+                  className={`text-sm transition-transform duration-200 ${skillsExpanded ? "rotate-180" : ""}`}
+                  aria-hidden="true"
+                >
+                  ↓
+                </span>
+              </button>
+            )}
           </motion.div>
 
           {/* ── PROGRESS SUMMARY ── */}

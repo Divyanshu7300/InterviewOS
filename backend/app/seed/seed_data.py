@@ -11,6 +11,37 @@ from app.services.llm_client import generate_llm_response
 
 # ─── Skills Meta ─────────────────────────────────────────────────────────────
 SKILLS_META = [
+    # AI/ML
+    {"name": "Machine Learning", "slug": "machine-learning", "icon": "🤖", "color": "#FF6F91"},
+    {"name": "LangChain",        "slug": "langchain",        "icon": "🦜", "color": "#1C3C3C"},
+    {"name": "Deep Learning",    "slug": "deep-learning",    "icon": "🧠", "color": "#8B5CF6"},
+    {"name": "Neural Networks",  "slug": "neural-networks",  "icon": "🕸️", "color": "#7C3AED"},
+    {"name": "Scikit-learn",     "slug": "scikit-learn",     "icon": "🔬", "color": "#F7931E"},
+    {"name": "PyTorch",          "slug": "pytorch",          "icon": "🔥", "color": "#EE4C2C"},
+    {"name": "TensorFlow",       "slug": "tensorflow",       "icon": "🟧", "color": "#FF6F00"},
+    {"name": "NLP",              "slug": "nlp",              "icon": "🗣️", "color": "#0EA5E9"},
+    {"name": "Computer Vision",  "slug": "computer-vision",  "icon": "👁️", "color": "#14B8A6"},
+    {"name": "LLMs",             "slug": "llms",             "icon": "💬", "color": "#4F46E5"},
+    {"name": "RAG",              "slug": "rag",              "icon": "📚", "color": "#F59E0B"},
+    {"name": "Transformers",     "slug": "transformers",     "icon": "🔁", "color": "#FFBF00"},
+    {"name": "MLOps",            "slug": "mlops",            "icon": "⚙️", "color": "#2563EB"},
+    {"name": "Feature Engineering", "slug": "feature-engineering", "icon": "🧪", "color": "#7C3AED"},
+    {"name": "Statistics for ML", "slug": "statistics-ml",   "icon": "📊", "color": "#0F766E"},
+    {"name": "Model Deployment", "slug": "model-deployment", "icon": "🚀", "color": "#DC2626"},
+    {"name": "Data Analysis",    "slug": "data-analysis",    "icon": "📈", "color": "#0284C7"},
+    {"name": "Data Visualization", "slug": "data-visualization", "icon": "📉", "color": "#7C2D12"},
+    {"name": "Pandas",           "slug": "pandas",           "icon": "🐼", "color": "#150458"},
+    {"name": "NumPy",            "slug": "numpy",            "icon": "🔢", "color": "#4D77CF"},
+    {"name": "SQL for Data Analysis", "slug": "sql-data-analysis", "icon": "🧮", "color": "#336791"},
+    {"name": "A/B Testing",      "slug": "ab-testing",       "icon": "🧫", "color": "#16A34A"},
+    {"name": "Recommendation Systems", "slug": "recommendation-systems", "icon": "🎯", "color": "#EA580C"},
+    {"name": "Time Series Forecasting", "slug": "time-series", "icon": "⏱️", "color": "#0891B2"},
+    {"name": "Hugging Face",     "slug": "huggingface",      "icon": "🤗", "color": "#FFD21E"},
+    {"name": "Prompt Engineering", "slug": "prompt-engineering", "icon": "✍️", "color": "#9333EA"},
+    {"name": "AI Agents",        "slug": "ai-agents",        "icon": "🧭", "color": "#1D4ED8"},
+    {"name": "Data Cleaning",    "slug": "data-cleaning",    "icon": "🧹", "color": "#059669"},
+    {"name": "Exploratory Data Analysis", "slug": "eda",     "icon": "🔎", "color": "#C2410C"},
+
     # Backend
     {"name": "Python",       "slug": "python",       "icon": "🐍", "color": "#3776AB"},
     {"name": "FastAPI",      "slug": "fastapi",       "icon": "⚡", "color": "#009688"},
@@ -37,10 +68,85 @@ SKILLS_META = [
     {"name": "System Design",                "slug": "system-design", "icon": "🏗️", "color": "#845EC2"},
     {"name": "REST APIs",                    "slug": "rest-apis",     "icon": "🔌", "color": "#FF9671"},
 
-    # AI/ML
-    {"name": "Machine Learning", "slug": "machine-learning", "icon": "🤖", "color": "#FF6F91"},
-    {"name": "LangChain",        "slug": "langchain",        "icon": "🦜", "color": "#1C3C3C"},
 ]
+
+SEED_BATCHES = {
+    "ai": [
+        "machine-learning",
+        "langchain",
+        "deep-learning",
+        "neural-networks",
+        "scikit-learn",
+        "pytorch",
+        "tensorflow",
+        "nlp",
+        "computer-vision",
+        "llms",
+        "rag",
+        "transformers",
+        "mlops",
+        "feature-engineering",
+        "statistics-ml",
+        "model-deployment",
+        "data-analysis",
+        "data-visualization",
+        "pandas",
+        "numpy",
+        "sql-data-analysis",
+        "ab-testing",
+        "recommendation-systems",
+        "time-series",
+        "huggingface",
+        "prompt-engineering",
+        "ai-agents",
+        "data-cleaning",
+        "eda",
+    ],
+    "frontend": [
+        "react",
+        "nextjs",
+        "typescript",
+        "javascript",
+        "tailwindcss",
+    ],
+    "backend": [
+        "python",
+        "fastapi",
+        "django",
+        "nodejs",
+        "sql",
+        "postgresql",
+        "redis",
+    ],
+    "others": [
+        "docker",
+        "git",
+        "linux",
+        "dsa",
+        "system-design",
+        "rest-apis",
+    ],
+}
+
+
+def get_seed_skill_catalog() -> list[dict]:
+    return [
+        {
+            "name": item["name"],
+            "slug": item["slug"],
+            "color": item["color"],
+            "icon": item["icon"],
+        }
+        for item in SKILLS_META
+    ]
+
+
+def get_seed_batches() -> dict[str, list[str]]:
+    return SEED_BATCHES
+
+
+def expand_seed_batch(batch_name: str) -> list[str]:
+    return SEED_BATCHES.get(batch_name, [])
 
 
 TOPICS_PROMPT = """
@@ -141,7 +247,11 @@ def validate_topic(t: dict) -> bool:
 
 # ─── Main Seed ───────────────────────────────────────────────────────────────
 
-def seed(skills_filter: list[str] = None):
+def seed(
+    skills_filter: list[str] = None,
+    with_topics: bool = True,
+    minimum_topic_count: int = 15,
+):
     """
     skills_filter: optional list of slugs to seed only specific skills
     e.g. seed(["python", "react"])
@@ -156,6 +266,7 @@ def seed(skills_filter: list[str] = None):
     total_topics  = 0
     skipped       = 0
     failed        = []
+    processed     = []
 
     try:
         for meta in skills_to_seed:
@@ -181,19 +292,26 @@ def seed(skills_filter: list[str] = None):
                 db.flush()
                 print(f"    ✓ Skill created: {skill.name} (id={skill.id})")
                 total_skills += 1
+                processed.append(meta["slug"])
             else:
                 # Update icon/color if changed
                 skill.icon  = meta["icon"]
                 skill.color = meta["color"]
                 db.flush()
                 print(f"    → Skill exists (id={skill.id}) — checking topics...")
+                processed.append(meta["slug"])
+
+            if not with_topics:
+                db.commit()
+                print("    ⏭  Topic generation disabled for this run")
+                continue
 
             # ── Topics check ──────────────────────────────────────────────────
             existing_count = db.query(LearningTopic).filter(
                 LearningTopic.skill_id == skill.id
             ).count()
 
-            if existing_count >= 15:
+            if existing_count >= minimum_topic_count:
                 print(f"    ⏭  Already has {existing_count} topics — skipping")
                 skipped += 1
                 continue
@@ -261,6 +379,16 @@ def seed(skills_filter: list[str] = None):
         if failed:
             print(f"  Failed         : {', '.join(failed)}")
         print(f"{'='*55}\n")
+
+        return {
+            "processed_skills": processed,
+            "skills_created": total_skills,
+            "topics_saved": total_topics,
+            "skills_skipped": skipped,
+            "failed_skills": failed,
+            "with_topics": with_topics,
+            "minimum_topic_count": minimum_topic_count,
+        }
 
     except Exception as e:
         db.rollback()

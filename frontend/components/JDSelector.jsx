@@ -6,6 +6,26 @@ import api from "../lib/axios";
 import { useAuth } from "../context/AuthContext";
 import { motion } from "framer-motion";
 
+function normalizeToArray(value) {
+  if (Array.isArray(value)) {
+    return value.filter(Boolean);
+  }
+
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
+    } catch {
+      return value
+        .split(",")
+        .map(item => item.trim())
+        .filter(Boolean);
+    }
+  }
+
+  return [];
+}
+
 export default function JDSelector({
   onSelect,
   selectedId = null,
@@ -26,7 +46,11 @@ export default function JDSelector({
     }
     api.get(`/jd/list`, { params: { user_id: userId } })
       .then(r => {
-        setJdList(r.data || []);
+        const normalized = (r.data || []).map((jd) => ({
+          ...jd,
+          tech_stack: normalizeToArray(jd.tech_stack),
+        }));
+        setJdList(normalized);
         setError(null);
       })
       .catch(err => {
@@ -101,6 +125,7 @@ export default function JDSelector({
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {jdList.map((jd, idx) => {
           const isSelected = jd.jd_id === selectedId;
+          const techStack = normalizeToArray(jd.tech_stack);
           return (
             <motion.button
               key={jd.jd_id}
@@ -166,9 +191,9 @@ export default function JDSelector({
                   )}
                 </div>
 
-                {jd.tech_stack?.length > 0 && (
+                {techStack.length > 0 && (
                   <div className="flex flex-wrap gap-2">
-                    {jd.tech_stack.slice(0, 6).map(tech => (
+                    {techStack.slice(0, 6).map(tech => (
                       <span
                         key={tech}
                         className="rounded-full border px-3 py-1.5 text-sm font-semibold"
@@ -181,14 +206,14 @@ export default function JDSelector({
                         {tech}
                       </span>
                     ))}
-                    {jd.tech_stack.length > 6 && (
+                    {techStack.length > 6 && (
                       <span className="rounded-full border px-3 py-1.5 text-sm font-semibold"
                         style={{
                           borderColor: isSelected ? "rgba(255,255,255,0.24)" : "var(--border)",
                           background: isSelected ? "rgba(255,255,255,0.08)" : "var(--bg-card)",
                           color: isSelected ? "var(--bg-primary)" : "var(--text-primary)",
                         }}>
-                        +{jd.tech_stack.length - 6} more
+                        +{techStack.length - 6} more
                       </span>
                     )}
                   </div>

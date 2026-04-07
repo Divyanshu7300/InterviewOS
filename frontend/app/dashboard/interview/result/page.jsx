@@ -21,6 +21,7 @@ const METRIC_META = {
 };
 
 const average = (items) => items.length ? items.reduce((sum, item) => sum + item, 0) / items.length : 0;
+const TARGET_ROUNDS = 20;
 
 function deriveLocalInsights(result) {
   const transcript = result.transcript || [];
@@ -37,7 +38,7 @@ function deriveLocalInsights(result) {
     || Object.entries(metricAverages).sort((a, b) => a[1] - b[1])[0]?.[0] || "depth";
   const momentumLabel = result.momentum || result.session_insights?.momentum || result.analytics?.momentumLabel || "Steady";
   const answeredCount = result.answeredCount ?? scoredAnswers.length;
-  const targetRounds = result.targetRounds ?? 5;
+  const targetRounds = result.targetRounds ?? result.session_insights?.target_rounds ?? TARGET_ROUNDS;
   const completionPct = clamp((answeredCount / targetRounds) * 100, 0, 100);
   const roundLabel = completionPct >= 100 ? "Full simulation"
     : completionPct >= 60 ? "Strong practice loop"

@@ -1,6 +1,6 @@
 """
 Token Service — daily token limit enforcement
-Free tier: 10,000 tokens/day per user
+Free tier: 50,000 tokens/day per user
 """
 from datetime import date
 from sqlalchemy.orm import Session
@@ -9,7 +9,7 @@ from fastapi import HTTPException
 from app.db.models.token import UserTokenUsage
 
 import os
-DAILY_LIMIT = int(os.getenv("DAILY_TOKEN_LIMIT", 10_000))
+DAILY_LIMIT = int(os.getenv("DAILY_TOKEN_LIMIT", 50_000))
 
 
 def estimate_tokens(text: str) -> int:

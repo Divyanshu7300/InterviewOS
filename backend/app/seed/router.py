@@ -1,9 +1,52 @@
-from fastapi import APIRouter
-from app.seed.seed_data import seed
+import os
+
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel, Field
+
+from app.seed.seed_data import expand_seed_batch, get_seed_batches, get_seed_skill_catalog, seed
 
 router = APIRouter()
 
-@router.get("/seed-skills1234")
-def seed_skills():
-    seed()
-    return {"message": "Seeding done 🚀"}
+SEED_ADMIN_PASSCODE = os.getenv("SEED_ADMIN_PASSCODE", "1234")
+
+
+class SeedSkillsRequest(BaseModel):
+    passcode: str
+    batch: str | None = Field(default=None, description="Predefined batch name like ai/frontend/backend/others")
+    skills: list[str] | None = Field(default=None, description="Skill slugs to seed")
+
+
+def verify_passcode(passcode: str) -> None:
+    if passcode != SEED_ADMIN_PASSCODE:
+        raise HTTPException(status_code=403, detail="Invalid seed passcode")
+
+
+@router.get("/seed/skills")
+def get_seed_skills(passcode: str = Query(...)):
+    verify_passcode(passcode)
+    return {
+        "skills": get_seed_skill_catalog(),
+        "batches": get_seed_batches(),
+        "count": len(get_seed_skill_catalog()),
+    }
+
+
+@router.post("/seed/skills")
+def seed_skills(payload: SeedSkillsRequest):
+    verify_passcode(payload.passcode)
+
+    selected_skills = payload.skills
+    if payload.batch:
+        batch_skills = expand_seed_batch(payload.batch)
+        if not batch_skills:
+            raise HTTPException(status_code=400, detail="Invalid seed batch")
+        selected_skills = batch_skills
+
+    summary = seed(
+        skills_filter=selected_skills,
+    )
+    return {
+        "message": "Seeding done",
+        "batch": payload.batch,
+        **summary,
+    }
