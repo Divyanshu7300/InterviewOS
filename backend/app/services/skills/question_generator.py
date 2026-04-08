@@ -47,6 +47,35 @@ Return ONLY a valid JSON array, no markdown, no explanation:
 ]
 """
 
+QUESTION_JSON_MODE_PROMPT = """
+You are an expert programming educator creating MCQ quiz questions.
+
+Skill: {skill_name}
+Topic: {topic_title}
+Level: {level}
+Description: {description}
+
+Generate quiz questions for this topic and return ONLY a JSON object in this shape:
+{{
+  "questions": [
+    {{
+      "question_text": "...",
+      "options": ["option A", "option B", "option C", "option D"],
+      "correct_index": 0,
+      "explanation": "..."
+    }}
+  ]
+}}
+
+Requirements:
+- Create exactly {candidate_count} questions
+- Questions must be specific to "{topic_title}"
+- Level appropriate: {level} means {level_desc}
+- Avoid repeated or generic questions
+- Each question must have exactly 4 distinct options
+- Only one correct answer per question
+"""
+
 LEVEL_DESCRIPTIONS = {
     "BEGINNER":     "basic concepts, definitions, simple usage",
     "INTERMEDIATE": "practical usage, patterns, common mistakes, integrations",
@@ -118,8 +147,12 @@ def get_or_generate_questions(
     cleaned_questions = _prepare_questions(questions_data, count=count)
 
     if not cleaned_questions:
-        raise RuntimeError("LLM returned invalid JSON for questions")
-    if len(cleaned_questions) < min(count, 8):
+        fallback_questions = _build_fallback_questions(topic=topic, skill_name=skill_name, count=min(count, 5))
+        if fallback_questions:
+            cleaned_questions = fallback_questions
+        else:
+            raise RuntimeError("LLM returned invalid JSON for questions")
+    if len(cleaned_questions) < min(count, 5):
         raise RuntimeError("Generated quiz questions were too repetitive or malformed")
 
     # ── Step 4: DB mein save karo ─────────────────────────────────────────────
@@ -185,6 +218,17 @@ def _generate_questions_payload(prompt: str) -> str:
     if _parse_questions_json(raw):
         return raw
 
+    print("[LEARN] Primary question output invalid, attempting JSON-mode retry")
+    json_prompt = _build_json_mode_prompt_from_prompt(prompt)
+    if json_prompt:
+        try:
+            json_mode_raw = generate_llm_response(json_prompt, json_mode=True)
+        except Exception as e:
+            print(f"[LEARN] JSON-mode retry failed: {e}")
+        else:
+            if _parse_questions_json(json_mode_raw):
+                return json_mode_raw
+
     print("[LEARN] Primary question output invalid, attempting repair pass")
     try:
         repaired = generate_llm_response(
@@ -240,6 +284,91 @@ def _cleanup_jsonish_text(value: str) -> str:
     value = value.replace("\u2018", "'").replace("\u2019", "'")
     value = re.sub(r",(\s*[}\]])", r"\1", value)
     return value
+
+
+def _build_json_mode_prompt_from_prompt(prompt: str) -> str:
+    skill = _extract_prompt_field(prompt, "Skill")
+    topic = _extract_prompt_field(prompt, "Topic")
+    level = _extract_prompt_field(prompt, "Level")
+    description = _extract_prompt_field(prompt, "Description")
+    if not all((skill, topic, level, description)):
+        return ""
+
+    return QUESTION_JSON_MODE_PROMPT.format(
+        skill_name=skill,
+        topic_title=topic,
+        level=level,
+        description=description,
+        candidate_count=23,
+        level_desc=LEVEL_DESCRIPTIONS.get(level, "general"),
+    )
+
+
+def _extract_prompt_field(prompt: str, label: str) -> str:
+    match = re.search(rf"{label}:\s*(.+)", prompt)
+    return (match.group(1).strip() if match else "")
+
+
+def _build_fallback_questions(topic: LearningTopic, skill_name: str, count: int) -> list[dict]:
+    subject = f"{skill_name} - {topic.title}"
+    base = [
+        {
+            "question_text": f"Which statement best describes the core idea of {subject}?",
+            "options": [
+                f"A practical concept used in {skill_name}",
+                "A frontend styling library",
+                "A mobile operating system",
+                "A database backup command",
+            ],
+            "correct_index": 0,
+            "explanation": f"{topic.title} is being treated as a concept within {skill_name}.",
+        },
+        {
+            "question_text": f"When working with {subject}, what should you focus on first?",
+            "options": [
+                "Understanding the fundamental purpose and common use case",
+                "Skipping straight to deployment without context",
+                "Ignoring edge cases entirely",
+                "Memorizing random syntax only",
+            ],
+            "correct_index": 0,
+            "explanation": "Strong fundamentals usually come first before advanced usage.",
+        },
+        {
+            "question_text": f"Which option is the most reasonable beginner approach to learn {subject}?",
+            "options": [
+                "Start with basics, examples, and small practice problems",
+                "Only study interview riddles",
+                "Avoid using examples",
+                "Jump only to optimization internals",
+            ],
+            "correct_index": 0,
+            "explanation": "Basics plus examples is the safest beginner learning path.",
+        },
+        {
+            "question_text": f"In interviews, questions on {subject} usually test what most directly?",
+            "options": [
+                "Conceptual clarity and applied understanding",
+                "Typing speed alone",
+                "Monitor resolution",
+                "Browser theme preference",
+            ],
+            "correct_index": 0,
+            "explanation": "Interviewers typically look for understanding and application.",
+        },
+        {
+            "question_text": f"What is a common mistake while answering questions about {subject}?",
+            "options": [
+                "Giving definitions without explaining practical usage",
+                "Providing concise examples",
+                "Connecting answers to real-world cases",
+                "Explaining tradeoffs clearly",
+            ],
+            "correct_index": 0,
+            "explanation": "Answers should usually connect concepts to application and tradeoffs.",
+        },
+    ]
+    return base[:count]
 
 
 def _normalize_text(text: str) -> str:
