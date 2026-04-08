@@ -147,7 +147,7 @@ def get_or_generate_questions(
     cleaned_questions = _prepare_questions(questions_data, count=count)
 
     if not cleaned_questions:
-        fallback_questions = _build_fallback_questions(topic=topic, skill_name=skill_name, count=min(count, 5))
+        fallback_questions = _build_fallback_questions(topic=topic, skill_name=skill_name, count=count)
         if fallback_questions:
             cleaned_questions = fallback_questions
         else:
@@ -366,6 +366,171 @@ def _build_fallback_questions(topic: LearningTopic, skill_name: str, count: int)
             ],
             "correct_index": 0,
             "explanation": "Answers should usually connect concepts to application and tradeoffs.",
+        },
+        {
+            "question_text": f"Which habit is most useful when improving at {subject}?",
+            "options": [
+                "Practicing small applied examples consistently",
+                "Ignoring fundamentals completely",
+                "Memorizing random facts without context",
+                "Skipping all revisions",
+            ],
+            "correct_index": 0,
+            "explanation": "Consistent, applied practice is usually the most effective way to improve.",
+        },
+        {
+            "question_text": f"What makes an answer about {subject} stronger in an interview?",
+            "options": [
+                "Explaining concept, use case, and tradeoff together",
+                "Giving only one-word responses",
+                "Avoiding all examples",
+                "Changing the topic completely",
+            ],
+            "correct_index": 0,
+            "explanation": "Good interview answers usually combine clarity, use case, and tradeoffs.",
+        },
+        {
+            "question_text": f"Which scenario best shows applied understanding of {subject}?",
+            "options": [
+                "Choosing the concept appropriately for a practical problem",
+                "Repeating the title of the topic only",
+                "Listing unrelated technologies",
+                "Avoiding all reasoning",
+            ],
+            "correct_index": 0,
+            "explanation": "Applied understanding is shown by using the right idea in the right scenario.",
+        },
+        {
+            "question_text": f"Why do interviewers ask topic-specific questions on {subject}?",
+            "options": [
+                "To check whether you can connect theory with practical use",
+                "To test handwriting quality",
+                "To measure internet speed",
+                "To compare screen brightness",
+            ],
+            "correct_index": 0,
+            "explanation": "Topic questions usually aim to test practical reasoning, not trivia alone.",
+        },
+        {
+            "question_text": f"Which answer style is weakest for a question on {subject}?",
+            "options": [
+                "A vague definition with no example or context",
+                "A clear explanation with one practical example",
+                "A concise answer with tradeoffs",
+                "A structured response with use case",
+            ],
+            "correct_index": 0,
+            "explanation": "Vague answers without context tend to perform poorly in interviews.",
+        },
+        {
+            "question_text": f"What should you do if a question on {subject} includes an unfamiliar edge case?",
+            "options": [
+                "State assumptions clearly and reason step by step",
+                "Panic and stop answering",
+                "Pretend to know everything instantly",
+                "Ignore the question entirely",
+            ],
+            "correct_index": 0,
+            "explanation": "Clear assumptions and stepwise reasoning are strong interview habits.",
+        },
+        {
+            "question_text": f"Which option best reflects production thinking for {subject}?",
+            "options": [
+                "Considering correctness, tradeoffs, and maintainability",
+                "Optimizing blindly without understanding",
+                "Ignoring failures and edge cases",
+                "Using random tools without reason",
+            ],
+            "correct_index": 0,
+            "explanation": "Production thinking requires balancing correctness with tradeoffs and maintainability.",
+        },
+        {
+            "question_text": f"When revising {subject}, what helps retention most?",
+            "options": [
+                "Combining concept review with short applied practice",
+                "Reading the topic name only",
+                "Skipping examples every time",
+                "Avoiding repetition completely",
+            ],
+            "correct_index": 0,
+            "explanation": "Retention improves when review is paired with practical recall.",
+        },
+        {
+            "question_text": f"What is the clearest way to explain {subject} to an interviewer?",
+            "options": [
+                "Define it, describe where it is used, and mention one tradeoff",
+                "Only say it is important",
+                "Use unrelated buzzwords",
+                "Avoid giving any structure",
+            ],
+            "correct_index": 0,
+            "explanation": "A strong answer defines the concept, gives usage context, and mentions tradeoffs.",
+        },
+        {
+            "question_text": f"Which mistake can make a response on {subject} sound shallow?",
+            "options": [
+                "Using memorized lines without real understanding",
+                "Giving a relevant practical example",
+                "Clarifying assumptions when needed",
+                "Describing a common use case",
+            ],
+            "correct_index": 0,
+            "explanation": "Memorized but context-free answers often sound shallow.",
+        },
+        {
+            "question_text": f"For a beginner, what is the best milestone in {subject}?",
+            "options": [
+                "Being able to explain the concept and solve a simple practical case",
+                "Knowing only the abbreviation",
+                "Skipping all foundational learning",
+                "Memorizing unrelated commands",
+            ],
+            "correct_index": 0,
+            "explanation": "Beginners should aim for basic explanation plus simple application.",
+        },
+        {
+            "question_text": f"What usually separates intermediate understanding of {subject} from beginner understanding?",
+            "options": [
+                "Ability to discuss tradeoffs and apply the concept in realistic scenarios",
+                "Using more buzzwords only",
+                "Answering more quickly without reasoning",
+                "Avoiding details completely",
+            ],
+            "correct_index": 0,
+            "explanation": "Intermediate understanding usually shows up as practical application and tradeoff awareness.",
+        },
+        {
+            "question_text": f"Which signal most strongly suggests you understand {subject} well?",
+            "options": [
+                "You can explain when to use it and when not to use it",
+                "You can repeat the title many times",
+                "You avoid all examples",
+                "You answer with unrelated terminology",
+            ],
+            "correct_index": 0,
+            "explanation": "Good understanding includes both appropriate use and limitations.",
+        },
+        {
+            "question_text": f"What is the best way to recover if you get stuck on a {subject} question?",
+            "options": [
+                "Break the problem into smaller parts and explain your reasoning",
+                "Stop speaking immediately",
+                "Guess random unrelated tools",
+                "Change the question yourself",
+            ],
+            "correct_index": 0,
+            "explanation": "Breaking the problem down shows structured thinking even when unsure.",
+        },
+        {
+            "question_text": f"Which approach is most likely to improve your performance on future questions about {subject}?",
+            "options": [
+                "Review mistakes, revisit concepts, and practice similar scenarios",
+                "Ignore incorrect answers completely",
+                "Memorize only one template answer",
+                "Avoid the topic from now on",
+            ],
+            "correct_index": 0,
+            "explanation": "Improvement usually comes from reviewing mistakes and practicing similar problems.",
         },
     ]
     return base[:count]
