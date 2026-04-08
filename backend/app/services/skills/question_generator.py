@@ -2,6 +2,7 @@
 Learning Module — LLM Question Generator
 DB check karo → agar questions hain return karo → warna LLM se generate karo → save karo
 """
+import ast
 import json
 import re
 from collections import Counter
@@ -52,6 +53,23 @@ LEVEL_DESCRIPTIONS = {
     "ADVANCED":     "internals, performance, edge cases, advanced patterns",
 }
 
+QUESTION_REPAIR_PROMPT = """
+Convert the following content into a valid JSON array of quiz questions.
+
+Rules:
+- Return ONLY a valid JSON array
+- No markdown, no explanation
+- Each item must have:
+  - question_text
+  - options (array of exactly 4 strings)
+  - correct_index (0-3)
+  - explanation
+- Remove malformed items instead of guessing
+
+Content to repair:
+{raw}
+"""
+
 
 def get_or_generate_questions(
     db: Session,
@@ -92,11 +110,7 @@ def get_or_generate_questions(
         level_desc=LEVEL_DESCRIPTIONS.get(topic.level, "general"),
     )
 
-    try:
-        raw = generate_llm_response(prompt)
-    except Exception as e:
-        print(f"[LEARN] LLM error: {e}")
-        raise RuntimeError("Failed to generate questions from LLM")
+    raw = _generate_questions_payload(prompt)
 
     # ── Step 3: Parse JSON ────────────────────────────────────────────────────
     questions_data = _parse_questions_json(raw)
@@ -135,30 +149,97 @@ def get_or_generate_questions(
 
 def _parse_questions_json(raw: str) -> list[dict]:
     """Robust JSON parser — tries multiple strategies"""
+    if not raw:
+        return []
 
-    # Strategy 1: direct parse
-    try:
-        return json.loads(raw.strip())
-    except json.JSONDecodeError:
-        pass
+    candidate_texts = _build_json_candidates(raw)
 
-    # Strategy 2: strip markdown fences
-    cleaned = re.sub(r"```(?:json)?", "", raw).strip()
-    try:
-        return json.loads(cleaned)
-    except json.JSONDecodeError:
-        pass
-
-    # Strategy 3: extract JSON array
-    match = re.search(r"\[.*\]", cleaned, re.DOTALL)
-    if match:
+    for candidate in candidate_texts:
         try:
-            return json.loads(match.group())
+            parsed = json.loads(candidate)
+            normalized = _coerce_question_payload(parsed)
+            if normalized:
+                return normalized
         except json.JSONDecodeError:
+            pass
+
+        try:
+            parsed = ast.literal_eval(candidate)
+            normalized = _coerce_question_payload(parsed)
+            if normalized:
+                return normalized
+        except (ValueError, SyntaxError):
             pass
 
     print(f"[LEARN] Failed to parse JSON:\n{raw[:300]}")
     return []
+
+
+def _generate_questions_payload(prompt: str) -> str:
+    try:
+        raw = generate_llm_response(prompt)
+    except Exception as e:
+        print(f"[LEARN] LLM error: {e}")
+        raise RuntimeError("Failed to generate questions from LLM")
+
+    if _parse_questions_json(raw):
+        return raw
+
+    print("[LEARN] Primary question output invalid, attempting repair pass")
+    try:
+        repaired = generate_llm_response(
+            QUESTION_REPAIR_PROMPT.format(raw=raw[:12000])
+        )
+    except Exception as e:
+        print(f"[LEARN] Repair pass failed: {e}")
+        return raw
+
+    if _parse_questions_json(repaired):
+        return repaired
+
+    return raw
+
+
+def _coerce_question_payload(parsed: object) -> list[dict]:
+    if isinstance(parsed, list):
+        return parsed
+    if isinstance(parsed, dict):
+        for key in ("questions", "items", "data", "quiz_questions"):
+            value = parsed.get(key)
+            if isinstance(value, list):
+                return value
+    return []
+
+
+def _build_json_candidates(raw: str) -> list[str]:
+    cleaned = raw.strip()
+    candidates: list[str] = []
+
+    def add_candidate(value: str) -> None:
+        value = _cleanup_jsonish_text(value)
+        if value and value not in candidates:
+            candidates.append(value)
+
+    add_candidate(cleaned)
+    add_candidate(re.sub(r"```(?:json)?", "", cleaned).strip())
+
+    array_match = re.search(r"\[\s*\{.*\}\s*\]", cleaned, re.DOTALL)
+    if array_match:
+        add_candidate(array_match.group())
+
+    object_match = re.search(r"\{\s*\"?(questions|items|data|quiz_questions)\"?\s*:.*\}", cleaned, re.DOTALL)
+    if object_match:
+        add_candidate(object_match.group())
+
+    return candidates
+
+
+def _cleanup_jsonish_text(value: str) -> str:
+    value = value.strip()
+    value = value.replace("\u201c", '"').replace("\u201d", '"')
+    value = value.replace("\u2018", "'").replace("\u2019", "'")
+    value = re.sub(r",(\s*[}\]])", r"\1", value)
+    return value
 
 
 def _normalize_text(text: str) -> str:
