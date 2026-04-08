@@ -11,122 +11,150 @@ from app.services.llm_client import generate_llm_response
 
 # ─── Skills Meta ─────────────────────────────────────────────────────────────
 SKILLS_META = [
-    # AI/ML
+    # AI/ML Roles
+    {"name": "AI Engineer",      "slug": "ai-engineer",      "icon": "🤖", "color": "#4F46E5"},
+    {"name": "Generative AI Engineer", "slug": "generative-ai-engineer", "icon": "✨", "color": "#7C3AED"},
+    {"name": "Machine Learning Engineer", "slug": "ml-engineer", "icon": "🛠️", "color": "#EC4899"},
+    {"name": "Data Scientist",   "slug": "data-scientist",   "icon": "🧪", "color": "#1D4ED8"},
+    {"name": "Data Analyst",     "slug": "data-analyst",     "icon": "📋", "color": "#0369A1"},
+    {"name": "BI Analyst",       "slug": "bi-analyst",       "icon": "📊", "color": "#B45309"},
+    {"name": "Business Analyst", "slug": "business-analyst", "icon": "💼", "color": "#0F766E"},
+    {"name": "Analytics Engineer", "slug": "analytics-engineer", "icon": "📐", "color": "#0EA5E9"},
+
+    # AI/ML Foundations
     {"name": "Machine Learning", "slug": "machine-learning", "icon": "🤖", "color": "#FF6F91"},
-    {"name": "LangChain",        "slug": "langchain",        "icon": "🦜", "color": "#1C3C3C"},
     {"name": "Deep Learning",    "slug": "deep-learning",    "icon": "🧠", "color": "#8B5CF6"},
     {"name": "Neural Networks",  "slug": "neural-networks",  "icon": "🕸️", "color": "#7C3AED"},
+    {"name": "Statistics for ML", "slug": "statistics-ml",   "icon": "📊", "color": "#0F766E"},
+    {"name": "Feature Engineering", "slug": "feature-engineering", "icon": "🧪", "color": "#7C3AED"},
+    {"name": "Model Evaluation", "slug": "model-evaluation", "icon": "📏", "color": "#2563EB"},
+    {"name": "Reinforcement Learning", "slug": "reinforcement-learning", "icon": "🎮", "color": "#059669"},
+    {"name": "Causal Inference", "slug": "causal-inference", "icon": "🪢", "color": "#B45309"},
+
+    # AI/ML Frameworks
     {"name": "Scikit-learn",     "slug": "scikit-learn",     "icon": "🔬", "color": "#F7931E"},
     {"name": "PyTorch",          "slug": "pytorch",          "icon": "🔥", "color": "#EE4C2C"},
     {"name": "TensorFlow",       "slug": "tensorflow",       "icon": "🟧", "color": "#FF6F00"},
-    {"name": "NLP",              "slug": "nlp",              "icon": "🗣️", "color": "#0EA5E9"},
-    {"name": "Computer Vision",  "slug": "computer-vision",  "icon": "👁️", "color": "#14B8A6"},
+    {"name": "Hugging Face",     "slug": "huggingface",      "icon": "🤗", "color": "#FFD21E"},
+    {"name": "LangChain",        "slug": "langchain",        "icon": "🦜", "color": "#1C3C3C"},
+
+    # GenAI / LLM
+    {"name": "Generative AI",    "slug": "generative-ai",    "icon": "✨", "color": "#8B5CF6"},
     {"name": "LLMs",             "slug": "llms",             "icon": "💬", "color": "#4F46E5"},
-    {"name": "RAG",              "slug": "rag",              "icon": "📚", "color": "#F59E0B"},
     {"name": "Transformers",     "slug": "transformers",     "icon": "🔁", "color": "#FFBF00"},
-    {"name": "MLOps",            "slug": "mlops",            "icon": "⚙️", "color": "#2563EB"},
-    {"name": "Feature Engineering", "slug": "feature-engineering", "icon": "🧪", "color": "#7C3AED"},
-    {"name": "Statistics for ML", "slug": "statistics-ml",   "icon": "📊", "color": "#0F766E"},
-    {"name": "Model Deployment", "slug": "model-deployment", "icon": "🚀", "color": "#DC2626"},
+    {"name": "Prompt Engineering", "slug": "prompt-engineering", "icon": "✍️", "color": "#9333EA"},
+    {"name": "RAG",              "slug": "rag",              "icon": "📚", "color": "#F59E0B"},
+    {"name": "Embeddings",       "slug": "embeddings",       "icon": "🧬", "color": "#4F46E5"},
+    {"name": "Vector Search",    "slug": "vector-search",    "icon": "🧲", "color": "#7C3AED"},
+    {"name": "Semantic Search",  "slug": "semantic-search",  "icon": "🔎", "color": "#0891B2"},
+    {"name": "AI Agents",        "slug": "ai-agents",        "icon": "🧭", "color": "#1D4ED8"},
+    {"name": "Multimodal AI",    "slug": "multimodal-ai",    "icon": "🖼️", "color": "#0EA5E9"},
+    {"name": "Fine-Tuning",      "slug": "fine-tuning",      "icon": "🎛️", "color": "#7C3AED"},
+    {"name": "Fine-Tuning LLMs", "slug": "fine-tuning-llms", "icon": "🧠", "color": "#6D28D9"},
+    {"name": "LLM Evaluation",   "slug": "llm-evaluation",   "icon": "🧪", "color": "#1D4ED8"},
+    {"name": "RLHF",             "slug": "rlhf",             "icon": "🎯", "color": "#EA580C"},
+    {"name": "AI Safety",        "slug": "ai-safety",        "icon": "🛡️", "color": "#DC2626"},
+
+    # Data / Analytics
+    {"name": "Data Science",     "slug": "data-science",     "icon": "🧬", "color": "#2563EB"},
     {"name": "Data Analysis",    "slug": "data-analysis",    "icon": "📈", "color": "#0284C7"},
+    {"name": "Exploratory Data Analysis", "slug": "eda",     "icon": "🔎", "color": "#C2410C"},
+    {"name": "Data Cleaning",    "slug": "data-cleaning",    "icon": "🧹", "color": "#059669"},
     {"name": "Data Visualization", "slug": "data-visualization", "icon": "📉", "color": "#7C2D12"},
+    {"name": "SQL for Data Analysis", "slug": "sql-data-analysis", "icon": "🧮", "color": "#336791"},
     {"name": "Pandas",           "slug": "pandas",           "icon": "🐼", "color": "#150458"},
     {"name": "NumPy",            "slug": "numpy",            "icon": "🔢", "color": "#4D77CF"},
-    {"name": "SQL for Data Analysis", "slug": "sql-data-analysis", "icon": "🧮", "color": "#336791"},
+    {"name": "Power BI",         "slug": "power-bi",         "icon": "📊", "color": "#F2C811"},
+    {"name": "Apache Spark",     "slug": "apache-spark",     "icon": "⚡", "color": "#E25A1C"},
+    {"name": "Airflow",          "slug": "airflow",          "icon": "🌬️", "color": "#017CEE"},
     {"name": "A/B Testing",      "slug": "ab-testing",       "icon": "🧫", "color": "#16A34A"},
-    {"name": "Recommendation Systems", "slug": "recommendation-systems", "icon": "🎯", "color": "#EA580C"},
     {"name": "Time Series Forecasting", "slug": "time-series", "icon": "⏱️", "color": "#0891B2"},
-    {"name": "Hugging Face",     "slug": "huggingface",      "icon": "🤗", "color": "#FFD21E"},
-    {"name": "Prompt Engineering", "slug": "prompt-engineering", "icon": "✍️", "color": "#9333EA"},
-    {"name": "AI Agents",        "slug": "ai-agents",        "icon": "🧭", "color": "#1D4ED8"},
-    {"name": "Data Cleaning",    "slug": "data-cleaning",    "icon": "🧹", "color": "#059669"},
-    {"name": "Exploratory Data Analysis", "slug": "eda",     "icon": "🔎", "color": "#C2410C"},
+    {"name": "Anomaly Detection","slug": "anomaly-detection","icon": "🚨", "color": "#DC2626"},
+
+    # Applied ML Use Cases
+    {"name": "NLP",              "slug": "nlp",              "icon": "🗣️", "color": "#0EA5E9"},
+    {"name": "Computer Vision",  "slug": "computer-vision",  "icon": "👁️", "color": "#14B8A6"},
+    {"name": "Recommendation Systems", "slug": "recommendation-systems", "icon": "🎯", "color": "#EA580C"},
+    {"name": "Recommendation ML","slug": "recommendation-ml","icon": "🎯", "color": "#C2410C"},
+    {"name": "XGBoost",          "slug": "xgboost",          "icon": "🌲", "color": "#2E7D32"},
+    {"name": "Vector Databases", "slug": "vector-databases", "icon": "🧲", "color": "#7C3AED"},
+
+    # MLOps / Production AI
+    {"name": "MLOps",            "slug": "mlops",            "icon": "⚙️", "color": "#2563EB"},
+    {"name": "Model Deployment", "slug": "model-deployment", "icon": "🚀", "color": "#DC2626"},
+    {"name": "Inference Optimization", "slug": "inference-optimization", "icon": "⚡", "color": "#F59E0B"},
+    {"name": "Distributed Training", "slug": "distributed-training", "icon": "🖧", "color": "#0284C7"},
+    {"name": "AI Observability", "slug": "ai-observability", "icon": "📡", "color": "#0F766E"},
 
     # Backend
     {"name": "Python",       "slug": "python",       "icon": "🐍", "color": "#3776AB"},
+    {"name": "Java",         "slug": "java",         "icon": "☕", "color": "#ED8B00"},
+    {"name": "Spring Boot",  "slug": "spring-boot",  "icon": "🍃", "color": "#6DB33F"},
     {"name": "FastAPI",      "slug": "fastapi",       "icon": "⚡", "color": "#009688"},
     {"name": "Django",       "slug": "django",        "icon": "🟩", "color": "#092E20"},
     {"name": "Node.js",      "slug": "nodejs",        "icon": "🟢", "color": "#339933"},
+    {"name": "Express.js",   "slug": "expressjs",     "icon": "🚂", "color": "#444444"},
     {"name": "SQL",          "slug": "sql",           "icon": "🗄️", "color": "#336791"},
     {"name": "PostgreSQL",   "slug": "postgresql",    "icon": "🐘", "color": "#4169E1"},
+    {"name": "MySQL",        "slug": "mysql",         "icon": "🐬", "color": "#4479A1"},
+    {"name": "MongoDB",      "slug": "mongodb",       "icon": "🍃", "color": "#47A248"},
     {"name": "Redis",        "slug": "redis",         "icon": "🔴", "color": "#DC382D"},
+    {"name": "GraphQL",      "slug": "graphql",       "icon": "🔺", "color": "#E10098"},
+    {"name": "Microservices","slug": "microservices", "icon": "🧱", "color": "#0F766E"},
 
     # Frontend
+    {"name": "HTML",         "slug": "html",          "icon": "📄", "color": "#E34F26"},
+    {"name": "CSS",          "slug": "css",           "icon": "🎀", "color": "#1572B6"},
     {"name": "React",        "slug": "react",         "icon": "⚛️", "color": "#61DAFB"},
+    {"name": "Redux",        "slug": "redux",         "icon": "🧰", "color": "#764ABC"},
+    {"name": "React Native", "slug": "react-native",  "icon": "📱", "color": "#61DAFB"},
     {"name": "Next.js",      "slug": "nextjs",        "icon": "▲",  "color": "#ffffff"},
     {"name": "TypeScript",   "slug": "typescript",    "icon": "🔷", "color": "#3178C6"},
     {"name": "JavaScript",   "slug": "javascript",    "icon": "🟨", "color": "#F7DF1E"},
     {"name": "Tailwind CSS", "slug": "tailwindcss",   "icon": "🎨", "color": "#38BDF8"},
+    {"name": "Webpack",      "slug": "webpack",       "icon": "📦", "color": "#8DD6F9"},
+    {"name": "Vite",         "slug": "vite",          "icon": "⚡", "color": "#646CFF"},
 
     # DevOps & Tools
     {"name": "Docker",       "slug": "docker",        "icon": "🐳", "color": "#2496ED"},
     {"name": "Git",          "slug": "git",           "icon": "🌿", "color": "#F05032"},
     {"name": "Linux",        "slug": "linux",         "icon": "🐧", "color": "#FCC624"},
+    {"name": "AWS",          "slug": "aws",           "icon": "☁️", "color": "#FF9900"},
+    {"name": "Kubernetes",   "slug": "kubernetes",    "icon": "☸️", "color": "#326CE5"},
+    {"name": "CI/CD",        "slug": "ci-cd",         "icon": "🔁", "color": "#0EA5E9"},
+    {"name": "Nginx",        "slug": "nginx",         "icon": "🟢", "color": "#009639"},
+    {"name": "Terraform",    "slug": "terraform",     "icon": "🏗️", "color": "#844FBA"},
+    {"name": "GitHub Actions","slug": "github-actions","icon": "⚙️", "color": "#2088FF"},
 
     # CS Fundamentals
     {"name": "Data Structures & Algorithms", "slug": "dsa",    "icon": "🧩", "color": "#FF6B6B"},
     {"name": "System Design",                "slug": "system-design", "icon": "🏗️", "color": "#845EC2"},
     {"name": "REST APIs",                    "slug": "rest-apis",     "icon": "🔌", "color": "#FF9671"},
+    {"name": "OOP",                          "slug": "oop",           "icon": "🧱", "color": "#2563EB"},
+    {"name": "Operating Systems",            "slug": "operating-systems", "icon": "💻", "color": "#4B5563"},
+    {"name": "Computer Networks",            "slug": "computer-networks", "icon": "🌐", "color": "#0EA5E9"},
+    {"name": "DBMS",                         "slug": "dbms",          "icon": "🗃️", "color": "#1D4ED8"},
+    {"name": "Concurrency",                  "slug": "concurrency",   "icon": "🪢", "color": "#DC2626"},
+    {"name": "Low Level Design",             "slug": "lld",           "icon": "📐", "color": "#7C3AED"},
 
 ]
 
-SEED_BATCHES = {
-    "ai": [
-        "machine-learning",
-        "langchain",
-        "deep-learning",
-        "neural-networks",
-        "scikit-learn",
-        "pytorch",
-        "tensorflow",
-        "nlp",
-        "computer-vision",
-        "llms",
-        "rag",
-        "transformers",
-        "mlops",
-        "feature-engineering",
-        "statistics-ml",
-        "model-deployment",
-        "data-analysis",
-        "data-visualization",
-        "pandas",
-        "numpy",
-        "sql-data-analysis",
-        "ab-testing",
-        "recommendation-systems",
-        "time-series",
-        "huggingface",
-        "prompt-engineering",
-        "ai-agents",
-        "data-cleaning",
-        "eda",
-    ],
-    "frontend": [
-        "react",
-        "nextjs",
-        "typescript",
-        "javascript",
-        "tailwindcss",
-    ],
-    "backend": [
-        "python",
-        "fastapi",
-        "django",
-        "nodejs",
-        "sql",
-        "postgresql",
-        "redis",
-    ],
-    "others": [
-        "docker",
-        "git",
-        "linux",
-        "dsa",
-        "system-design",
-        "rest-apis",
-    ],
-}
+SEED_BATCH_SIZE = 5
+
+
+def _build_seed_batches(skills_meta: list[dict], chunk_size: int = SEED_BATCH_SIZE) -> dict[str, list[str]]:
+    batches: dict[str, list[str]] = {}
+    slugs = [item["slug"] for item in skills_meta]
+
+    for index in range(0, len(slugs), chunk_size):
+        batch_number = (index // chunk_size) + 1
+        batch_name = f"batch-{batch_number:02d}"
+        batches[batch_name] = slugs[index:index + chunk_size]
+
+    return batches
+
+
+SEED_BATCHES = _build_seed_batches(SKILLS_META)
 
 
 def get_seed_skill_catalog() -> list[dict]:

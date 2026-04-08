@@ -12,7 +12,7 @@ SEED_ADMIN_PASSCODE = os.getenv("SEED_ADMIN_PASSCODE", "1234")
 
 class SeedSkillsRequest(BaseModel):
     passcode: str
-    batch: str | None = Field(default=None, description="Predefined batch name like ai/frontend/backend/others")
+    batch: str | None = Field(default=None, description="Predefined 5-skill batch name like batch-01")
     skills: list[str] | None = Field(default=None, description="Skill slugs to seed")
 
 
