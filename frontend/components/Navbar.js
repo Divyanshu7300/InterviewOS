@@ -7,8 +7,16 @@ import { useTheme } from "next-themes";
 import UserAvatar from "@/components/UserAvatar";
 
 const Icon = ({ d, size = 14 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
-    stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.8"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
     <path d={d} />
   </svg>
 );
@@ -26,13 +34,19 @@ const icons = {
   moon:      "M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z",
 };
 
+const activeStyle = {
+  background: "var(--accent-sky-soft)",
+  borderColor: "var(--accent-sky-border)",
+  boxShadow: "0 12px 34px rgba(15, 23, 42, 0.14)",
+};
+
 const navLinks = [
   { href: "/home",                label: "Home",      icon: "home",      exact: true  },
-  { href: "/dashboard",           label: "Dashboard", icon: "dashboard", exact: true  },
-  { href: "/dashboard/jd",        label: "JD",        icon: "jd",        exact: false },
-  { href: "/dashboard/resume",    label: "Resume",    icon: "resume",    exact: false },
+  { href: "/dashboard",          label: "Dashboard", icon: "dashboard", exact: true  },
+  { href: "/dashboard/jd",       label: "JD",        icon: "jd",        exact: false },
+  { href: "/dashboard/resume",   label: "Resume",    icon: "resume",    exact: false },
   { href: "/dashboard/interview", label: "Interview", icon: "interview", exact: false },
-  { href: "/dashboard/learn",     label: "Learn",     icon: "learn",     exact: false },
+  { href: "/dashboard/learn",    label: "Learn",     icon: "learn",     exact: false },
   { href: "/dashboard/community", label: "Community", icon: "community", exact: false },
 ];
 
@@ -42,7 +56,7 @@ function ThemeToggle() {
   return (
     <button
       onClick={() => setTheme(isDark ? "light" : "dark")}
-      className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-primary)] transition-all duration-150 hover:scale-[1.03]"
+      className="flex h-10 w-10 items-center justify-center rounded-[16px] border border-[var(--border)] bg-[var(--bg-secondary)] text-[var(--text-primary)] transition-all duration-150 hover:-translate-y-0.5"
       title={isDark ? "Light mode" : "Dark mode"}
     >
       <Icon d={isDark ? icons.sun : icons.moon} size={14} />
@@ -67,57 +81,68 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="fixed left-0 right-0 top-0 z-50 h-[60px] border-b border-[var(--border)] bg-[var(--bg-primary)] backdrop-blur-xl">
-      <div className="mx-auto flex h-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-5">
-
-        <Link href="/dashboard"
-          className="shrink-0 text-base font-semibold tracking-tight text-[var(--text-primary)] no-underline">
-          interview<span className="opacity-40">OS</span>
-        </Link>
-
-        <div className="hidden items-center gap-1 lg:flex">
-          {navLinks.map(link => {
-            const active = link.exact
-              ? pathname === link.href
-              : pathname === link.href || pathname.startsWith(link.href + "/");
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-medium text-[var(--text-primary)] transition-all duration-150 no-underline ${
-                  active ? "bg-[var(--bg-card)] border border-[var(--border)]" : "bg-transparent border border-transparent"
-                }`}
-              >
-                <Icon d={icons[link.icon]} size={13} />
-                <span>{link.label}</span>
-              </Link>
-            );
-          })}
-        </div>
-
-        <div className="flex flex-shrink-0 items-center gap-2">
-
-          <ThemeToggle />
+    <nav className="fixed left-0 right-0 top-0 z-50 px-3 pt-3 sm:px-5">
+      <div className="mx-auto max-w-6xl">
+        <div className="relative flex h-[58px] items-center justify-between gap-3 overflow-hidden rounded-[24px] border border-[var(--border)] bg-[var(--bg-card)] px-3 shadow-[0_18px_60px_rgba(3,7,18,0.22)] backdrop-blur-xl sm:px-4">
+          <div
+            className="absolute inset-0 opacity-80"
+            style={{
+              background:
+                "var(--panel-glow)",
+            }}
+          />
 
           <Link
-            href="/dashboard/profile"
-            className={`flex items-center gap-2 rounded-xl border border-[var(--border)] px-3 py-2 text-[var(--text-primary)] transition-all duration-150 no-underline ${
-              pathname.startsWith("/dashboard/profile") ? "bg-[var(--bg-card)]" : "bg-[var(--bg-card)]"
-            }`}
+            href="/dashboard"
+            className="relative flex min-h-[40px] shrink-0 items-center rounded-[16px] px-2 text-base font-black tracking-[-0.03em] text-[var(--text-primary)] no-underline sm:px-3"
           >
-            <UserAvatar name={displayName} size="sm" />
-            <span className="hidden max-w-[120px] truncate text-sm font-medium md:block">{displayName}</span>
+            interview<span className="opacity-40">OS</span>
           </Link>
 
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 rounded-xl border border-transparent px-3 py-2 text-sm font-medium text-[var(--text-primary)] transition-all duration-150 hover:border-rose-500/20 hover:bg-rose-500/10 hover:text-rose-500"
-          >
-            <Icon d={icons.logout} size={13} />
-            <span className="hidden sm:inline">Out</span>
-          </button>
-        </div>
+          <div className="relative hidden items-center gap-1 lg:flex">
+            {navLinks.map(link => {
+              const active = link.exact
+                ? pathname === link.href
+                : pathname === link.href || pathname.startsWith(link.href + "/");
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`flex min-h-[40px] items-center gap-2 rounded-[16px] border px-3 text-sm font-bold text-[var(--text-primary)] transition-all duration-150 no-underline hover:-translate-y-0.5 ${
+                    active ? "" : "border-transparent bg-transparent"
+                  }`}
+                  style={active ? activeStyle : undefined}
+                >
+                  <Icon d={icons[link.icon]} size={13} />
+                  <span>{link.label}</span>
+                </Link>
+              );
+            })}
+          </div>
 
+          <div className="relative flex flex-shrink-0 items-center gap-2">
+
+            <ThemeToggle />
+
+            <Link
+              href="/dashboard/profile"
+              className="flex min-h-[40px] items-center gap-2 rounded-[16px] border border-[var(--border)] bg-[var(--bg-secondary)] px-2 text-[var(--text-primary)] no-underline transition-all duration-150 hover:-translate-y-0.5 sm:px-3"
+              style={pathname.startsWith("/dashboard/profile") ? activeStyle : undefined}
+            >
+              <UserAvatar name={displayName} size="sm" />
+              <span className="hidden max-w-[120px] truncate text-sm font-bold md:block">{displayName}</span>
+            </Link>
+
+            <button
+              onClick={handleLogout}
+              className="flex min-h-[40px] items-center gap-2 rounded-[16px] border border-transparent px-3 text-sm font-bold text-[var(--text-primary)] transition-all duration-150 hover:-translate-y-0.5 hover:border-rose-500/20 hover:bg-rose-500/10 hover:text-rose-400"
+            >
+              <Icon d={icons.logout} size={13} />
+              <span className="hidden sm:inline">Out</span>
+            </button>
+          </div>
+
+        </div>
       </div>
     </nav>
   );

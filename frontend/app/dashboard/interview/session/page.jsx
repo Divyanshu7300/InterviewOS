@@ -15,6 +15,8 @@ const BAR_HEIGHTS = [8, 14, 20, 12, 24, 10, 18, 22, 8, 16, 26, 10, 20, 14, 18, 1
 const TARGET_ROUNDS = 20;
 const SILENCE_TIMEOUT_MS = 2600;
 const MOBILE_SILENCE_TIMEOUT_MS = 3600;
+const RECORDING_DB_NAME = "interviewos-recordings";
+const RECORDING_STORE_NAME = "recordings";
 const METRIC_META = {
   confidence: { label: "Confidence", accent: "#a78bfa" },
   correctness: { label: "Correctness", accent: "#4ade80" },
@@ -47,6 +49,47 @@ function getApiErrorMessage(err, fallback) {
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const average = (items) => items.length ? items.reduce((sum, item) => sum + item, 0) / items.length : 0;
 const cleanTranscript = (text = "") => text.trim().replace(/\s+/g, " ");
+
+function openRecordingDb() {
+  return new Promise((resolve, reject) => {
+    if (typeof indexedDB === "undefined") {
+      reject(new Error("IndexedDB unavailable"));
+      return;
+    }
+
+    const request = indexedDB.open(RECORDING_DB_NAME, 1);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(RECORDING_STORE_NAME)) {
+        db.createObjectStore(RECORDING_STORE_NAME, { keyPath: "id" });
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function saveRecordingBlob(blob, sessionId) {
+  const db = await openRecordingDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(RECORDING_STORE_NAME, "readwrite");
+    tx.objectStore(RECORDING_STORE_NAME).put({
+      id: "latest",
+      sessionId,
+      blob,
+      mimeType: blob.type,
+      createdAt: Date.now(),
+    });
+    tx.oncomplete = () => {
+      db.close();
+      resolve();
+    };
+    tx.onerror = () => {
+      db.close();
+      reject(tx.error);
+    };
+  });
+}
 
 function appendTranscript(base, nextPart) {
   const normalizedBase = cleanTranscript(base);
@@ -218,6 +261,7 @@ export default function InterviewSessionPage() {
   const autoSubmitOnSilenceRef = useRef(false);
   const lastFinalChunkRef = useRef("");
   const pushToTalkPressedRef = useRef(false);
+  const endingRef = useRef(false);
 
   const answerRef      = useRef("");
   const sessionRef     = useRef(null);
@@ -239,6 +283,7 @@ export default function InterviewSessionPage() {
   useEffect(() => { voiceModeRef.current  = voiceMode;  }, [voiceMode]);
   useEffect(() => { loadingRef.current    = loading;    }, [loading]);
   useEffect(() => { aiSpeakingRef.current = aiSpeaking; }, [aiSpeaking]);
+  useEffect(() => { endingRef.current     = ending;     }, [ending]);
   useEffect(() => { transcriptEnd.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -249,6 +294,15 @@ export default function InterviewSessionPage() {
   const releaseMicAccess = () => {
     micStreamRef.current?.getTracks().forEach((track) => track.stop());
     micStreamRef.current = null;
+  };
+
+  const disableVoiceMode = (message) => {
+    manualStopRef.current = true;
+    setVoiceMode(false);
+    voiceModeRef.current = false;
+    setMicOn(false);
+    releaseMicAccess();
+    if (message) setError(message);
   };
 
   const ensureMicAccess = async () => {
@@ -365,7 +419,7 @@ export default function InterviewSessionPage() {
     const onDone = () => {
       aiSpeakingRef.current = false;
       setAiSpeaking(false);
-      if (voiceModeRef.current && !pushToTalkMode) {
+      if (voiceModeRef.current && !pushToTalkMode && !endingRef.current) {
         startListening({ autoSubmitOnSilence: autoSubmitEnabled });
       }
     };
@@ -381,7 +435,7 @@ export default function InterviewSessionPage() {
       setVoiceMode(false);
       return;
     }
-    if (loadingRef.current || aiSpeakingRef.current) return;
+    if (loadingRef.current || aiSpeakingRef.current || endingRef.current || !voiceModeRef.current) return;
     if (!(await ensureMicAccess())) return;
 
     manualStopRef.current = false;
@@ -410,13 +464,11 @@ export default function InterviewSessionPage() {
 
     rec.onerror  = (e)  => {
       if (e.error === "not-allowed" || e.error === "service-not-allowed") {
-        setVoiceMode(false);
-        voiceModeRef.current = false;
-        manualStopRef.current = true;
-        setError("Microphone permission blocked. Allow mic access and try again.");
+        disableVoiceMode("Microphone permission blocked. Allow mic access and try again.");
       } else if (e.error === "audio-capture") {
-        setError("No microphone detected. Connect a mic and try again.");
+        disableVoiceMode("No microphone detected. Connect a mic and try again.");
       } else if (e.error === "network") {
+        manualStopRef.current = true;
         setError("Speech recognition network issue. Please try again.");
       }
     };
@@ -559,7 +611,10 @@ export default function InterviewSessionPage() {
     } catch { setError("Camera access denied."); }
   };
 
-  const stopCamera = () => {
+  const stopCamera = async () => {
+    if (mediaRecorderRef.current?.state === "recording") {
+      await stopRecording();
+    }
     cameraStream?.getTracks().forEach(t => t.stop());
     setCameraStream(null); setCameraOn(false); setRecording(false);
   };
@@ -567,17 +622,50 @@ export default function InterviewSessionPage() {
   const startRecording = () => {
     if (!cameraStream) return;
     recordedChunksRef.current = [];
-    const mr = new MediaRecorder(cameraStream, { mimeType: "video/webm" });
+    const mimeType = MediaRecorder.isTypeSupported("video/webm;codecs=vp8,opus")
+      ? "video/webm;codecs=vp8,opus"
+      : MediaRecorder.isTypeSupported("video/webm")
+        ? "video/webm"
+        : "";
+    const mr = new MediaRecorder(cameraStream, mimeType ? { mimeType } : undefined);
     mr.ondataavailable = e => { if (e.data.size > 0) recordedChunksRef.current.push(e.data); };
-    mr.onstop = () => setRecordedUrl(URL.createObjectURL(
-      new Blob(recordedChunksRef.current, { type: "video/webm" })
-    ));
+    mr.onstop = async () => {
+      const blob = new Blob(recordedChunksRef.current, { type: mr.mimeType || "video/webm" });
+      if (!blob.size) return;
+
+      const url = URL.createObjectURL(blob);
+      setRecordedUrl(url);
+      sessionStorage.setItem("recordingUrl", url);
+      sessionStorage.setItem("recordingSaved", "true");
+
+      try {
+        await saveRecordingBlob(blob, sessionRef.current?.sessionId || "session");
+      } catch {
+        setError("Recording was captured, but browser storage failed. Use Save before leaving this page.");
+      }
+    };
     mr.start();
     mediaRecorderRef.current = mr;
     setRecording(true);
   };
 
-  const stopRecording = () => { mediaRecorderRef.current?.stop(); setRecording(false); };
+  const stopRecording = () => new Promise((resolve) => {
+    const recorder = mediaRecorderRef.current;
+    if (!recorder || recorder.state === "inactive") {
+      setRecording(false);
+      resolve();
+      return;
+    }
+
+    const previousOnStop = recorder.onstop;
+    recorder.onstop = async (event) => {
+      if (previousOnStop) await previousOnStop(event);
+      mediaRecorderRef.current = null;
+      setRecording(false);
+      resolve();
+    };
+    recorder.stop();
+  });
 
   const downloadRecording = () => {
     if (!recordedUrl) return;
@@ -589,9 +677,10 @@ export default function InterviewSessionPage() {
 
   // ── endInterview — fetch summary then redirect ─────────────────────────────
   const endInterview = async () => {
+    endingRef.current = true;
     stopListening();
     window.speechSynthesis?.cancel();
-    stopCamera();
+    await stopCamera();
     setEnding(true);
 
     const sess = sessionRef.current;
@@ -671,13 +760,14 @@ export default function InterviewSessionPage() {
 
   return (
     <ProtectedRoute>
-      <div className="mt-[72px] h-[calc(100dvh-72px)] overflow-hidden bg-[var(--bg-primary)]">
+      <div className="mt-[72px] h-[calc(100dvh-72px)] overflow-hidden bg-[var(--bg-primary)] px-3 pb-3">
 
         {/* ── TOP BAR ── */}
-        <div className="flex h-14 shrink-0 items-center justify-between border-b border-[var(--border)] bg-[var(--bg-primary)] px-4 py-3 sm:px-5">
-          <div className="flex items-center gap-3">
+        <div className="relative mb-3 flex h-14 shrink-0 items-center justify-between overflow-hidden rounded-[24px] border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3 shadow-[0_18px_60px_rgba(3,7,18,0.22)] sm:px-5">
+          <div className="absolute inset-0 opacity-80" style={{ background: "radial-gradient(circle at top left, rgba(125,211,252,0.12), transparent 30%), radial-gradient(circle at 80% 10%, rgba(251,191,36,0.1), transparent 26%)" }} />
+          <div className="relative flex items-center gap-3">
             <span className="w-2 h-2 rounded-full bg-emerald-400" />
-            <span className="text-[14px] font-bold tracking-tight text-[var(--text-primary)]">
+            <span className="text-[14px] font-black tracking-[-0.03em] text-[var(--text-primary)]">
               AI Interview
             </span>
             <span className="text-[13px] font-light text-[var(--text-primary)]">
@@ -690,7 +780,7 @@ export default function InterviewSessionPage() {
           <button
             onClick={endInterview}
             disabled={ending}
-            className="flex items-center gap-2 rounded-lg border border-rose-500/20 bg-rose-500/10 px-4 py-2 text-xs font-semibold text-rose-400 transition-opacity hover:opacity-80 disabled:opacity-50">
+            className="relative flex items-center gap-2 rounded-[16px] border border-rose-500/20 bg-rose-500/10 px-4 py-2 text-xs font-bold text-rose-400 transition-all hover:-translate-y-0.5 disabled:opacity-50">
             {ending ? (
               <>
                 <span className="w-3 h-3 border-2 rounded-full animate-spin inline-block"
@@ -719,15 +809,15 @@ export default function InterviewSessionPage() {
         )}
 
         {/* ── MAIN LAYOUT ── */}
-        <div className="grid h-[calc(100%-3.5rem)] min-h-0 flex-1 overflow-hidden xl:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="grid h-[calc(100%-4.25rem)] min-h-0 flex-1 gap-3 overflow-hidden xl:grid-cols-[minmax(0,1fr)_360px]">
 
           {/* ── LEFT: VIDEO ── */}
-          <div className="flex min-h-0 flex-col gap-3 overflow-hidden p-3 sm:p-4">
-            <div className="rounded-[26px] border overflow-hidden"
+          <div className="flex min-h-0 flex-col gap-3 overflow-hidden">
+            <div className="relative overflow-hidden rounded-[30px] border border-[var(--border)] bg-[var(--bg-card)] shadow-[0_24px_80px_rgba(3,7,18,0.20)]"
               style={{
-                background: "linear-gradient(135deg, rgba(34,197,94,0.08), rgba(59,130,246,0.08) 45%, rgba(245,158,11,0.08))",
-                borderColor: "rgba(255,255,255,0.08)",
+                background: "var(--bg-card)",
               }}>
+              <div className="absolute inset-0 opacity-80" style={{ background: "var(--panel-glow)" }} />
               <div className="px-4 py-4 flex flex-col gap-4">
                 <div className="flex flex-wrap gap-2">
                   <StatChip label="Momentum" value={analytics.momentumLabel} accent="#38bdf8" />
@@ -749,14 +839,14 @@ export default function InterviewSessionPage() {
                     <div className="h-full rounded-full transition-all duration-500"
                       style={{
                         width: `${analytics.progressPct}%`,
-                        background: "linear-gradient(90deg, #4ade80, #38bdf8 55%, #f59e0b)",
+                        background: "var(--brand-gradient-strong)",
                       }} />
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="relative min-h-0 flex-1 overflow-hidden rounded-2xl border"
+            <div className="relative min-h-0 flex-1 overflow-hidden rounded-[30px] border shadow-[0_24px_80px_rgba(3,7,18,0.20)]"
               style={{ background: "#000", borderColor: "var(--border)" }}>
               <video ref={videoRef} autoPlay muted playsInline
                 className="w-full h-full object-cover"
@@ -780,14 +870,14 @@ export default function InterviewSessionPage() {
               )}
               <div className="absolute bottom-3 right-3 flex gap-2">
                 <button onClick={cameraOn ? stopCamera : startCamera}
-                  className={`rounded-full border px-3 py-1.5 text-sm font-semibold transition-all ${
+                  className={`rounded-[16px] border px-3 py-1.5 text-sm font-bold transition-all ${
                     cameraOn ? "text-emerald-400 bg-emerald-500/20 border-emerald-500/30" : "border-white/20 text-white/50"
                   }`}
                   style={!cameraOn ? { background: "rgba(0,0,0,0.5)" } : {}}>
                   {cameraOn ? "Camera On" : "Camera Off"}
                 </button>
                 <button onClick={recording ? stopRecording : startRecording} disabled={!cameraOn}
-                  className={`rounded-full border px-3 py-1.5 text-sm font-semibold transition-all disabled:opacity-30 ${
+                  className={`rounded-[16px] border px-3 py-1.5 text-sm font-bold transition-all disabled:opacity-30 ${
                     recording ? "text-red-400 bg-red-500/20 border-red-500/30" : "border-white/20 text-white/50"
                   }`}
                   style={!recording ? { background: "rgba(0,0,0,0.5)" } : {}}>
@@ -795,7 +885,7 @@ export default function InterviewSessionPage() {
                 </button>
                 {recordedUrl && (
                   <button onClick={downloadRecording}
-                    className="rounded-full border border-white/20 px-3 py-1.5 text-sm font-semibold text-white/80"
+                    className="rounded-[16px] border border-white/20 px-3 py-1.5 text-sm font-bold text-white/80"
                     style={{ background: "rgba(0,0,0,0.5)" }}>
                     ↓ Save
                   </button>
@@ -834,7 +924,7 @@ export default function InterviewSessionPage() {
                       if (!next) stopListening();
                     }}
                     disabled={!speechSupported}
-                    className="text-[11px] font-semibold px-3 py-1 rounded-full border transition-all"
+                    className="rounded-[14px] border px-3 py-1 text-[11px] font-bold transition-all"
                     style={voiceMode
                       ? { background: "var(--bg-card)", borderColor: "var(--text-primary)", color: "var(--text-primary)" }
                       : { background: "var(--bg-card)", borderColor: "var(--border)",       color: "var(--text-primary)" }}>
@@ -850,7 +940,7 @@ export default function InterviewSessionPage() {
                       setPushToTalkMode(false);
                       if (micOn) stopListening();
                     }}
-                    className="rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-all"
+                    className="rounded-[14px] border px-3 py-1.5 text-[11px] font-bold transition-all"
                     style={pushToTalkMode
                       ? { background: "var(--bg-card)", borderColor: "var(--border)", color: "var(--text-primary)" }
                       : { background: "var(--text-primary)", borderColor: "var(--text-primary)", color: "var(--bg-primary)" }}>
@@ -861,7 +951,7 @@ export default function InterviewSessionPage() {
                       setPushToTalkMode(true);
                       if (micOn) stopListening();
                     }}
-                    className="rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-all"
+                    className="rounded-[14px] border px-3 py-1.5 text-[11px] font-bold transition-all"
                     style={pushToTalkMode
                       ? { background: "var(--text-primary)", borderColor: "var(--text-primary)", color: "var(--bg-primary)" }
                       : { background: "var(--bg-card)", borderColor: "var(--border)", color: "var(--text-primary)" }}>
@@ -869,7 +959,7 @@ export default function InterviewSessionPage() {
                   </button>
                   <button
                     onClick={() => setAutoSubmitEnabled((prev) => !prev)}
-                    className="rounded-full border px-3 py-1.5 text-[11px] font-semibold transition-all"
+                    className="rounded-[14px] border px-3 py-1.5 text-[11px] font-bold transition-all"
                     style={autoSubmitEnabled
                       ? { background: "var(--bg-card)", borderColor: "var(--text-primary)", color: "var(--text-primary)" }
                       : { background: "var(--bg-card)", borderColor: "var(--border)", color: "var(--text-primary)" }}>
@@ -877,7 +967,7 @@ export default function InterviewSessionPage() {
                   </button>
                   {isMobile && (
                     <span
-                      className="rounded-full border px-3 py-1.5 text-[11px] font-semibold"
+                      className="rounded-[14px] border px-3 py-1.5 text-[11px] font-bold"
                       style={{ background: "var(--bg-card)", borderColor: "var(--border)", color: "var(--text-primary)" }}>
                       Mobile mic tuned
                     </span>
@@ -896,7 +986,7 @@ export default function InterviewSessionPage() {
                       onTouchEnd={endPressToTalk}
                       onTouchCancel={endPressToTalk}
                       disabled={aiSpeaking || loading}
-                      className={`px-4 py-2.5 rounded-xl border text-sm font-semibold transition-all flex-shrink-0 ${
+                      className={`flex-shrink-0 rounded-[18px] border px-4 py-2.5 text-sm font-bold transition-all ${
                         micOn ? "text-red-400 bg-red-500/10 border-red-500/20" : ""
                       }`}
                       style={!micOn ? { background: "var(--bg-card)", borderColor: "var(--border)", color: "var(--text-primary)" } : {}}>
@@ -909,7 +999,7 @@ export default function InterviewSessionPage() {
                         else if (!aiSpeakingRef.current && !loadingRef.current) startListening({ autoSubmitOnSilence: autoSubmitEnabled });
                       }}
                       disabled={aiSpeaking || loading}
-                      className={`px-3 py-2.5 rounded-xl border text-sm transition-all flex-shrink-0 ${
+                      className={`flex-shrink-0 rounded-[18px] border px-3 py-2.5 text-sm font-bold transition-all ${
                         micOn ? "text-red-400 bg-red-500/10 border-red-500/20" : ""
                       }`}
                       style={!micOn ? { background: "var(--bg-card)", borderColor: "var(--border)", color: "var(--text-primary)" } : {}}>
@@ -923,22 +1013,22 @@ export default function InterviewSessionPage() {
                   onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); doSubmit(answerRef.current); } }}
                   placeholder={voiceMode ? "Spoken answer appears here…" : "Type your answer…"}
                   rows={2}
-                  className="max-h-28 min-h-[52px] flex-1 resize-none rounded-xl border px-4 py-2.5 text-[13px] font-light outline-none"
+                  className="max-h-28 min-h-[52px] flex-1 resize-none rounded-[18px] border px-4 py-2.5 text-[13px] font-medium outline-none"
                   style={{ background: "var(--bg-card)", borderColor: "var(--border)", color: "var(--text-primary)" }}
                 />
                 <button
                   onClick={() => doSubmit(answerRef.current)}
                   disabled={loading || !answer.trim()}
-                  className="px-5 rounded-xl text-sm font-bold transition-all active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
-                  style={{ background: "var(--text-primary)", color: "var(--bg-primary)" }}>
-                  {loading ? "…" : "Submit →"}
+                  className="flex-shrink-0 rounded-[18px] px-5 text-sm font-bold transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
+                  style={{ background: "var(--brand-gradient)", color: "rgb(15,23,42)" }}>
+                  {loading ? "..." : "Submit"}
                 </button>
               </div>
             </div>
           </div>
 
           {/* ── RIGHT: CHAT ── */}
-          <div className="flex min-h-0 flex-col overflow-hidden border-l border-[var(--border)]">
+          <div className="flex min-h-0 flex-col overflow-hidden rounded-[30px] border border-[var(--border)] bg-[var(--bg-card)] shadow-[0_24px_80px_rgba(3,7,18,0.20)]">
             <div className="flex shrink-0 items-center gap-2.5 border-b px-4 py-3"
               style={{ borderColor: "var(--border)", background: "var(--bg-card)" }}>
               <div className="w-8 h-8 rounded-full flex items-center justify-center border text-[10px] font-bold flex-shrink-0 transition-all duration-300"

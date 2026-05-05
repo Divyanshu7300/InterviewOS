@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import ProtectedRoute from "../../../../components/ProtectedRoute";
@@ -8,19 +8,13 @@ import ProtectedRoute from "../../../../components/ProtectedRoute";
 const checklist = [
   "Eye contact with camera",
   "Clear and confident voice",
-  "No excessive filler words (um, uh)",
+  "No excessive filler words",
   "Good posture and body language",
-  "Structured answers (STAR method)",
-  "Technical accuracy of answers",
-  "Response time — not too fast or slow",
+  "Structured answers",
+  "Technical accuracy",
+  "Balanced response time",
   "Professional appearance",
 ];
-
-const fadeUp = (delay = 0) => ({
-  initial:    { opacity: 0, y: 16, filter: "blur(4px)" },
-  animate:    { opacity: 1, y: 0,  filter: "blur(0px)" },
-  transition: { duration: 0.4, ease: [0.4, 0, 0.2, 1], delay },
-});
 
 const SELF_RATING_META = {
   confidence: { label: "How confident did you sound?", accent: "#a78bfa" },
@@ -28,6 +22,14 @@ const SELF_RATING_META = {
   depth: { label: "How deep was your technical reasoning?", accent: "#38bdf8" },
   correctness: { label: "How accurate were your answers?", accent: "#4ade80" },
 };
+const RECORDING_DB_NAME = "interviewos-recordings";
+const RECORDING_STORE_NAME = "recordings";
+
+const fadeUp = (delay = 0) => ({
+  initial: { opacity: 0, y: 16, filter: "blur(4px)" },
+  animate: { opacity: 1, y: 0, filter: "blur(0px)" },
+  transition: { duration: 0.45, ease: [0.4, 0, 0.2, 1], delay },
+});
 
 const gapLabel = (gap) => {
   if (gap >= 1.5) return "Overconfident";
@@ -35,19 +37,80 @@ const gapLabel = (gap) => {
   return "Aligned";
 };
 
+function openRecordingDb() {
+  return new Promise((resolve, reject) => {
+    if (typeof indexedDB === "undefined") {
+      reject(new Error("IndexedDB unavailable"));
+      return;
+    }
+
+    const request = indexedDB.open(RECORDING_DB_NAME, 1);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(RECORDING_STORE_NAME)) {
+        db.createObjectStore(RECORDING_STORE_NAME, { keyPath: "id" });
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function loadLatestRecording() {
+  const db = await openRecordingDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(RECORDING_STORE_NAME, "readonly");
+    const request = tx.objectStore(RECORDING_STORE_NAME).get("latest");
+    request.onsuccess = () => {
+      db.close();
+      resolve(request.result || null);
+    };
+    request.onerror = () => {
+      db.close();
+      reject(request.error);
+    };
+  });
+}
+
+function Panel({ eyebrow, title, description, children, aside }) {
+  return (
+    <div className="relative overflow-hidden rounded-[30px] border border-[var(--border)] bg-[var(--bg-card)] p-5 shadow-[0_24px_80px_rgba(3,7,18,0.24)] sm:p-7">
+      <div className="absolute inset-0 opacity-80" style={{ background: "var(--panel-glow)" }} />
+      <div className="relative grid gap-6 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-start">
+        <div className="flex flex-col gap-4">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--text-muted)]">{eyebrow}</p>
+            <h2 className="mt-2 text-[26px] font-black tracking-[-0.03em] text-[var(--text-primary)]">{title}</h2>
+            {description ? <p className="mt-3 max-w-2xl text-[15px] leading-7 text-[var(--text-secondary)]">{description}</p> : null}
+          </div>
+          {children}
+        </div>
+        {aside ? <div className="relative">{aside}</div> : null}
+      </div>
+    </div>
+  );
+}
+
+function MetricCard({ label, value, tone = "text-sky-300" }) {
+  return (
+    <div className="rounded-[24px] border border-[var(--border)] bg-[var(--bg-secondary)] p-5">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">{label}</p>
+      <p className={`mt-5 text-[30px] font-black leading-none ${tone}`}>{value}</p>
+    </div>
+  );
+}
+
 export default function InterviewRecordingPage() {
   const router = useRouter();
-  const [recordedUrl] = useState(() => {
-    if (typeof window === "undefined") return null;
-    return sessionStorage.getItem("recordingUrl");
-  });
+  const [recordedUrl, setRecordedUrl] = useState(null);
+  const [recordingLoading, setRecordingLoading] = useState(true);
   const [session] = useState(() => {
     if (typeof window === "undefined") return null;
     const raw = sessionStorage.getItem("interviewSession");
     const resultRaw = sessionStorage.getItem("interviewResult");
     return raw ? JSON.parse(raw) : resultRaw ? JSON.parse(resultRaw) : null;
   });
-  const [checked,     setChecked]     = useState([]);
+  const [checked, setChecked] = useState([]);
   const [selfRating, setSelfRating] = useState({
     confidence: 6,
     clarity: 6,
@@ -55,273 +118,191 @@ export default function InterviewRecordingPage() {
     correctness: 6,
   });
 
+  useEffect(() => {
+    let active = true;
+    let objectUrl = null;
+
+    const loadRecording = async () => {
+      try {
+        const saved = await loadLatestRecording();
+        if (!active) return;
+
+        if (saved?.blob) {
+          objectUrl = URL.createObjectURL(saved.blob);
+          setRecordedUrl(objectUrl);
+          sessionStorage.setItem("recordingUrl", objectUrl);
+        }
+      } catch {
+        const existingUrl = sessionStorage.getItem("recordingUrl");
+        if (active && existingUrl) setRecordedUrl(existingUrl);
+      } finally {
+        if (active) setRecordingLoading(false);
+      }
+    };
+
+    loadRecording();
+
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, []);
+
   const toggleCheck = (item) =>
-    setChecked(prev => prev.includes(item) ? prev.filter(i => i !== item) : [...prev, item]);
+    setChecked((prev) => prev.includes(item) ? prev.filter((i) => i !== item) : [...prev, item]);
 
   const downloadRecording = () => {
     if (!recordedUrl) return;
     const a = document.createElement("a");
-    a.href     = recordedUrl;
+    a.href = recordedUrl;
     a.download = `interview-${session?.sessionId || "session"}.webm`;
     a.click();
   };
 
   const completionPct = Math.round((checked.length / checklist.length) * 100);
   const reflectionTone = completionPct >= 75
-    ? "Strong self-review. Next step is repeating the same questions with sharper delivery."
+    ? "Strong self-review. Repeat the same questions with sharper delivery."
     : completionPct >= 40
-      ? "Good pass. Rewatch once more and note exactly where energy or structure dropped."
-      : "Start with the basics and mark the easiest misses first. Small corrections compound fast.";
+      ? "Good pass. Rewatch once more and note exactly where structure dropped."
+      : "Start with the basics and mark the easiest misses first.";
   const aiScores = session?.session_insights?.skill_scores || {};
   const ratingGaps = Object.keys(SELF_RATING_META).map((metric) => {
     const ai = aiScores[metric] ?? 0;
     const self = selfRating[metric];
-    return {
-      metric,
-      ai,
-      self,
-      gap: Number((self - ai).toFixed(1)),
-      label: gapLabel(self - ai),
-    };
+    return { metric, ai, self, gap: Number((self - ai).toFixed(1)), label: gapLabel(self - ai) };
   });
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen flex flex-col bg-[var(--bg-primary)]">
+      <div className="min-h-screen bg-[var(--bg-primary)] px-4 pb-28 pt-[84px] sm:px-5">
+        <div className="mx-auto flex max-w-6xl flex-col gap-6">
+          <motion.section {...fadeUp(0)} className="theme-hero relative overflow-hidden rounded-[34px] border border-[var(--border)] bg-[var(--bg-card)] px-6 py-7 shadow-[0_28px_90px_rgba(3,7,18,0.34)] sm:px-8 sm:py-9">
+            <div className="absolute inset-0" style={{ background: "var(--hero-surface)" }} />
+            <div className="relative grid gap-8 lg:grid-cols-[minmax(0,1.15fr)_320px] lg:items-end">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.26em] text-sky-200/80">Recording Review</p>
+                <h1 className="mt-3 max-w-3xl text-[36px] font-black leading-[0.98] tracking-[-0.04em] text-white sm:text-[52px]">
+                  Rewatch the room, then tighten the delivery.
+                </h1>
+                <p className="mt-4 max-w-2xl text-[15px] leading-7 text-slate-200/80 sm:text-[16px]">
+                  Review your interview recording, mark delivery signals, and compare your self-rating with AI scoring.
+                </p>
+                <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                  {[
+                    { label: "Recording", value: recordingLoading ? "Loading" : recordedUrl ? "Ready" : "Missing" },
+                    { label: "Checklist", value: `${checked.length}/${checklist.length}` },
+                    { label: "Review", value: `${completionPct}% done` },
+                  ].map((item) => (
+                    <div key={item.label} className="rounded-[22px] border border-white/10 bg-white/6 px-4 py-4 backdrop-blur">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-300">{item.label}</p>
+                      <p className="mt-2 text-sm font-semibold text-white">{item.value}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
-        {/* ── TOP BAR ── */}
-        <div className="sticky top-0 z-50 flex items-center justify-between border-b border-[var(--border)] bg-[var(--bg-primary)] px-5 py-4 sm:px-6">
-          <div className="flex items-center gap-3">
-            <span className={`w-2 h-2 rounded-full ${recordedUrl ? "bg-emerald-400" : ""}`}
-              style={!recordedUrl ? { background: "var(--text-primary)", opacity: 0.28 } : {}} />
-            <span className="text-base font-bold tracking-tight text-[var(--text-primary)]">
-              {session?.roleTitle ? `Recording — ${session.roleTitle}` : "Interview Recording"}
-            </span>
-          </div>
-          <button
-            onClick={() => router.push("/dashboard/interview")}
-            className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2.5 text-sm font-semibold text-[var(--text-primary)] transition-opacity hover:opacity-80">
-            ← Back
-          </button>
-        </div>
+              <div className="rounded-[28px] border border-white/10 bg-black/20 p-5 backdrop-blur">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-300">Session Preview</p>
+                <p className="mt-5 text-lg font-bold text-white">{session?.roleTitle || "Interview Recording"}</p>
+                <p className="mt-2 text-sm leading-6 text-slate-200/80">{recordingLoading ? "Checking browser storage..." : recordedUrl ? "Recording is available for review." : "No saved recording found yet."}</p>
+                <button onClick={() => router.push("/dashboard/interview")} className="mt-5 inline-flex min-h-[48px] w-full items-center justify-center rounded-[18px] px-4 text-sm font-bold text-slate-950" style={{ background: "var(--brand-gradient)" }}>
+                  Back to Interview
+                </button>
+              </div>
+            </div>
+          </motion.section>
 
-        {/* ── CONTENT ── */}
-        <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col px-4 pb-20 pt-2 sm:px-5">
-
-          {!recordedUrl ? (
-            /* ── EMPTY STATE ── */
-            <motion.div {...fadeUp(0)}
-              className="flex flex-col items-center justify-center gap-4 pt-24 text-center">
-              <p className="text-4xl">📹</p>
-              <h2 className="text-xl font-extrabold tracking-tight text-[var(--text-primary)]">
-                No recording found
-              </h2>
-              <p className="text-base leading-7 text-[var(--text-primary)]">
-                Record your next interview session to review it here.
-              </p>
-              <button
-                onClick={() => router.push("/dashboard/interview")}
-                className="mt-2 rounded-xl bg-[var(--text-primary)] px-5 py-3 text-sm font-bold text-[var(--bg-primary)] transition-opacity hover:opacity-80">
-                Start an Interview →
-              </button>
+          {recordingLoading ? (
+            <motion.div {...fadeUp(0.08)}>
+              <Panel eyebrow="Loading" title="Finding your recording" description="Checking browser storage for the saved interview video." />
             </motion.div>
-
+          ) : !recordedUrl ? (
+            <motion.div {...fadeUp(0.08)}>
+              <Panel eyebrow="Empty State" title="No recording found" description="Record your next interview session to review it here.">
+                <button onClick={() => router.push("/dashboard/interview")} className="inline-flex min-h-[52px] w-fit items-center justify-center rounded-[20px] px-5 text-sm font-bold text-slate-950" style={{ background: "var(--brand-gradient)" }}>
+                  Start an Interview
+                </button>
+              </Panel>
+            </motion.div>
           ) : (
             <>
-              {/* ── HERO ── */}
-              <motion.div {...fadeUp(0)} className="mb-8 flex flex-col gap-3 pt-8">
-                <p className="text-sm font-semibold uppercase tracking-[0.22em]"
-                  style={{ color: "var(--text-primary)" }}>
-                  Review
-                </p>
-                <h1 className="text-[36px] font-extrabold tracking-tight leading-[1.08]"
-                  style={{ color: "var(--text-primary)" }}>
-                  Your Recording
-                </h1>
-                <p className="text-base leading-7"
-                  style={{ color: "var(--text-primary)" }}>
-                  Watch your session back, download it, and use the checklist below to self-evaluate.
-                </p>
-              </motion.div>
-
-              {/* ── VIDEO PLAYER ── */}
-              <motion.div {...fadeUp(0.08)}
-                className="mb-4 overflow-hidden rounded-[28px] border"
-                style={{ background: "#000", borderColor: "var(--border)" }}>
-                <video src={recordedUrl} controls className="w-full block" style={{ maxHeight: 520 }} />
-              </motion.div>
-
-              {/* ── DOWNLOAD ── */}
-              <motion.div {...fadeUp(0.12)} className="mb-8">
-                <button
-                  onClick={downloadRecording}
-                  className="rounded-xl border px-5 py-3 text-sm font-bold transition-opacity hover:opacity-80"
-                  style={{ background: "var(--bg-card)", borderColor: "var(--border)", color: "var(--text-primary)" }}>
-                  ↓ Download Recording
-                </button>
-              </motion.div>
-
-              {/* ── SELF EVALUATION CHECKLIST ── */}
-              <motion.div {...fadeUp(0.16)}
-                className="rounded-[28px] border p-6 sm:p-7"
-                style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}>
-
-                <div className="flex items-center justify-between mb-5">
-                  <div>
-                    <p className="mb-1 text-sm font-semibold uppercase tracking-[0.18em]"
-                      style={{ color: "var(--text-primary)" }}>
-                      Checklist
-                    </p>
-                    <h2 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>
-                      Self Evaluation
-                    </h2>
+              <motion.div {...fadeUp(0.08)}>
+                <Panel
+                  eyebrow="Video"
+                  title="Watch your session back"
+                  description="Use the recording to catch body language, pacing, and delivery patterns that text feedback can miss."
+                  aside={<div className="rounded-[24px] border border-[var(--border)] bg-[var(--bg-secondary)] p-5 text-sm leading-7 text-[var(--text-secondary)]">{reflectionTone}</div>}
+                >
+                  <div className="overflow-hidden rounded-[26px] border border-[var(--border)] bg-black">
+                    <video src={recordedUrl} controls className="block w-full" style={{ maxHeight: 520 }} />
                   </div>
-                  <span className="rounded-full border px-3 py-1.5 text-sm font-semibold"
-                    style={{
-                      background: checked.length === checklist.length ? "rgba(52,211,153,0.1)" : "var(--bg-secondary)",
-                      borderColor: checked.length === checklist.length ? "rgba(52,211,153,0.2)" : "var(--border)",
-                      color: checked.length === checklist.length ? "#34d399" : "var(--text-primary)",
-                    }}>
-                    {checked.length}/{checklist.length}
-                  </span>
-                </div>
+                  <button onClick={downloadRecording} className="w-fit rounded-[18px] border border-[var(--border)] bg-[var(--bg-secondary)] px-5 py-3 text-sm font-bold text-[var(--text-primary)]">
+                    Download Recording
+                  </button>
+                </Panel>
+              </motion.div>
 
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                  {checklist.map(item => {
-                    const done = checked.includes(item);
-                    return (
-                      <button
-                        key={item}
-                        onClick={() => toggleCheck(item)}
-                        className="flex items-center gap-3 rounded-xl border px-4 py-3.5 text-left transition-all"
-                        style={{
-                          background: done ? "rgba(52,211,153,0.06)" : "var(--bg-secondary)",
-                          borderColor: done ? "rgba(52,211,153,0.2)" : "var(--border)",
-                        }}>
-                        <div className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded border transition-all"
-                          style={{
-                            background: done ? "#34d399" : "transparent",
-                            borderColor: done ? "#34d399" : "var(--border)",
-                          }}>
-                          {done && (
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--bg-primary)" strokeWidth="3">
-                              <polyline points="20 6 9 17 4 12" />
-                            </svg>
-                          )}
+              <motion.div {...fadeUp(0.14)}>
+                <Panel
+                  eyebrow="Checklist"
+                  title="Self evaluation"
+                  description="Mark the delivery and structure signals you want to carry into the next attempt."
+                  aside={<MetricCard label="Review Complete" value={`${completionPct}%`} tone={completionPct >= 75 ? "text-emerald-300" : "text-amber-300"} />}
+                >
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    {checklist.map((item) => {
+                      const done = checked.includes(item);
+                      return (
+                        <button
+                          key={item}
+                          onClick={() => toggleCheck(item)}
+                          className="flex items-center gap-3 rounded-[20px] border px-4 py-3.5 text-left transition-all hover:-translate-y-0.5"
+                          style={{ background: done ? "rgba(52,211,153,0.08)" : "var(--bg-secondary)", borderColor: done ? "rgba(52,211,153,0.22)" : "var(--border)" }}
+                        >
+                          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-[8px] border text-xs font-black" style={{ background: done ? "#34d399" : "transparent", borderColor: done ? "#34d399" : "var(--border)", color: done ? "#0c0c0e" : "var(--text-primary)" }}>
+                            {done ? "✓" : ""}
+                          </span>
+                          <span className="text-sm leading-6 text-[var(--text-primary)]">{item}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="rounded-[24px] border border-[var(--border)] bg-[var(--bg-secondary)] p-5">
+                    <div className="mb-3 flex justify-between text-sm font-bold text-[var(--text-primary)]"><span>Reflection meter</span><span>{checked.length}/{checklist.length}</span></div>
+                    <div className="h-3 overflow-hidden rounded-full bg-[var(--border)]">
+                      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${completionPct}%`, background: "var(--brand-gradient-strong)" }} />
+                    </div>
+                  </div>
+                </Panel>
+              </motion.div>
+
+              <motion.div {...fadeUp(0.2)}>
+                <Panel eyebrow="Calibration" title="Compare self-rating with AI evaluation" description="Use the gap to understand whether your delivery felt stronger or weaker than the scored signal.">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {Object.entries(SELF_RATING_META).map(([metric, meta]) => (
+                      <div key={metric} className="rounded-[24px] border border-[var(--border)] bg-[var(--bg-secondary)] p-5">
+                        <div className="mb-3 flex items-center justify-between gap-3">
+                          <p className="text-sm font-bold leading-6 text-[var(--text-primary)]">{meta.label}</p>
+                          <span className="text-sm font-semibold" style={{ color: meta.accent }}>Self {selfRating[metric]}/10</span>
                         </div>
-                        <span className="text-sm leading-6"
-                          style={{ color: done ? "#34d399" : "var(--text-primary)" }}>
-                          {item}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {checked.length === checklist.length && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                    className="mt-5 rounded-xl border px-4 py-3 text-center text-sm"
-                    style={{ background: "rgba(52,211,153,0.06)", borderColor: "rgba(52,211,153,0.2)", color: "#34d399" }}>
-                    ✓ All items checked — great session!
-                  </motion.div>
-                )}
-              </motion.div>
-
-              <motion.div {...fadeUp(0.2)}
-                className="mt-6 rounded-[28px] border p-6 sm:p-7"
-                style={{
-                  background: "linear-gradient(135deg, rgba(56,189,248,0.08), rgba(52,211,153,0.08))",
-                  borderColor: "var(--border)",
-                }}>
-                <div className="flex items-center justify-between gap-4 flex-wrap">
-                  <div>
-                    <p className="mb-1 text-sm font-semibold uppercase tracking-[0.18em]"
-                      style={{ color: "var(--text-primary)" }}>
-                      Reflection Meter
-                    </p>
-                    <h2 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>
-                      {completionPct}% review complete
-                    </h2>
+                        <input type="range" min="1" max="10" value={selfRating[metric]} onChange={(e) => setSelfRating((prev) => ({ ...prev, [metric]: Number(e.target.value) }))} className="w-full" />
+                        <div className="mt-3 flex items-center justify-between text-sm text-[var(--text-secondary)]">
+                          <span>AI {Number(aiScores[metric] ?? 0).toFixed(1)}/10</span>
+                          <span>{gapLabel(selfRating[metric] - (aiScores[metric] ?? 0))}</span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <span className="rounded-full border px-3 py-1.5 text-sm font-semibold"
-                    style={{ background: "var(--bg-secondary)", borderColor: "var(--border)", color: "var(--text-primary)" }}>
-                    {checked.length}/{checklist.length} checks
-                  </span>
-                </div>
-                <div className="mt-4 h-2.5 rounded-full overflow-hidden"
-                  style={{ background: "rgba(255,255,255,0.08)" }}>
-                  <div className="h-full rounded-full transition-all duration-500"
-                    style={{
-                      width: `${completionPct}%`,
-                      background: "linear-gradient(90deg, #38bdf8, #34d399)",
-                    }} />
-                </div>
-                <p className="mt-4 text-base leading-7"
-                  style={{ color: "var(--text-primary)" }}>
-                  {reflectionTone}
-                </p>
-              </motion.div>
-
-              <motion.div {...fadeUp(0.24)}
-                className="mt-6 rounded-[28px] border p-6 sm:p-7"
-                style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}>
-                <div className="mb-5">
-                  <p className="mb-1 text-sm font-semibold uppercase tracking-[0.18em]"
-                    style={{ color: "var(--text-primary)" }}>
-                    Calibration
-                  </p>
-                  <h2 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>
-                    Compare your self-rating with AI evaluation
-                  </h2>
-                </div>
-
-                <div className="flex flex-col gap-5">
-                  {Object.entries(SELF_RATING_META).map(([metric, meta]) => (
-                    <div key={metric} className="rounded-xl border px-4 py-4"
-                      style={{ background: "var(--bg-secondary)", borderColor: "var(--border)" }}>
-                      <div className="flex items-center justify-between gap-3 mb-3">
-                        <p className="text-sm font-medium leading-6" style={{ color: "var(--text-primary)" }}>
-                          {meta.label}
-                        </p>
-                        <span className="text-sm font-semibold" style={{ color: meta.accent }}>
-                          Self {selfRating[metric]}/10
-                        </span>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    {ratingGaps.map((item) => (
+                      <div key={item.metric} className="rounded-[20px] border border-[var(--border)] bg-[var(--bg-secondary)] px-4 py-4">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">{SELF_RATING_META[item.metric].label}</p>
+                        <p className="mt-2 text-base font-bold" style={{ color: SELF_RATING_META[item.metric].accent }}>{item.label}</p>
+                        <p className="mt-1 text-sm text-[var(--text-secondary)]">Gap: {item.gap > 0 ? "+" : ""}{item.gap} points</p>
                       </div>
-                      <input
-                        type="range"
-                        min="1"
-                        max="10"
-                        value={selfRating[metric]}
-                        onChange={(e) => setSelfRating(prev => ({ ...prev, [metric]: Number(e.target.value) }))}
-                        className="w-full"
-                      />
-                      <div className="mt-3 flex items-center justify-between text-sm"
-                        style={{ color: "var(--text-primary)" }}>
-                        <span>AI {Number(aiScores[metric] ?? 0).toFixed(1)}/10</span>
-                        <span>{gapLabel(selfRating[metric] - (aiScores[metric] ?? 0))}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2">
-                  {ratingGaps.map((item) => (
-                    <div key={item.metric} className="rounded-xl border px-4 py-4"
-                      style={{ background: "var(--bg-secondary)", borderColor: "var(--border)" }}>
-                      <p className="mb-1 text-sm font-semibold uppercase tracking-[0.14em]"
-                        style={{ color: "var(--text-primary)" }}>
-                        {SELF_RATING_META[item.metric].label}
-                      </p>
-                      <p className="text-base font-bold" style={{ color: SELF_RATING_META[item.metric].accent }}>
-                        {item.label}
-                      </p>
-                      <p className="mt-1 text-sm" style={{ color: "var(--text-primary)" }}>
-                        Gap: {item.gap > 0 ? "+" : ""}{item.gap} points
-                      </p>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                </Panel>
               </motion.div>
             </>
           )}

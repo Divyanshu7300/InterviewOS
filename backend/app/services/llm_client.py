@@ -6,7 +6,7 @@ import os
 import requests
 from sqlalchemy.orm import Session
 
-LLM_PROVIDER   = os.getenv("LLM_PROVIDER", "ollama")
+LLM_PROVIDER   = os.getenv("LLM_PROVIDER", "ollama").split("#", 1)[0].strip().lower()
 OLLAMA_URL     = os.getenv("OLLAMA_URL", "http://host.docker.internal:11434/api/generate")
 OLLAMA_MODEL   = os.getenv("OLLAMA_MODEL", "llama3.2")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")

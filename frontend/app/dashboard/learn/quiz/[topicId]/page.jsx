@@ -8,35 +8,29 @@ import ProtectedRoute from "../../../../../components/ProtectedRoute";
 import { motion, AnimatePresence } from "framer-motion";
 
 const LABELS = ["A", "B", "C", "D"];
+const fadeUp = (delay = 0) => ({ initial: { opacity: 0, y: 16, filter: "blur(4px)" }, animate: { opacity: 1, y: 0, filter: "blur(0px)" }, transition: { duration: 0.45, ease: [0.4, 0, 0.2, 1], delay } });
 
-const Spinner = () => (
-  <span className="w-4 h-4 border-2 rounded-full animate-spin inline-block"
-    style={{ borderColor: "var(--border)", borderTopColor: "var(--text-primary)" }} />
-);
+const Spinner = () => <span className="inline-block h-4 w-4 animate-spin rounded-full border-2" style={{ borderColor: "rgba(15,23,42,0.22)", borderTopColor: "rgb(15,23,42)" }} />;
 
 export default function QuizPage() {
-  const router   = useRouter();
-  const params   = useParams();
+  const router = useRouter();
+  const params = useParams();
   const { user } = useAuth();
-  const topicId  = params?.topicId;
+  const topicId = params?.topicId;
 
-  const [quizData,    setQuizData]    = useState(null);
-  const [current,     setCurrent]     = useState(0);
-  const [answers,     setAnswers]     = useState({});
-  const [submitting,  setSubmitting]  = useState(false);
-  const [loading,     setLoading]     = useState(true);
-  const [error,       setError]       = useState(null);
+  const [quizData, setQuizData] = useState(null);
+  const [current, setCurrent] = useState(0);
+  const [answers, setAnswers] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!topicId) return;
     const uid = user?.id ? parseInt(user.id) : null;
-    api.post(
-      `/learn/topics/${topicId}/questions`,
-      null,
-      { params: { count: 15, ...(uid && { user_id: uid }) } }
-    )
-      .then(r => setQuizData(r.data))
-      .catch(err => {
+    api.post(`/learn/topics/${topicId}/questions`, null, { params: { count: 15, ...(uid && { user_id: uid }) } })
+      .then((r) => setQuizData(r.data))
+      .catch((err) => {
         const d = err.response?.data?.detail;
         setError(typeof d === "string" ? d : "Failed to load questions.");
       })
@@ -44,17 +38,15 @@ export default function QuizPage() {
   }, [topicId, user?.id]);
 
   const questions = quizData?.questions ?? [];
-  const q         = questions[current];
-  const total     = questions.length;
-  const answered  = Object.keys(answers).length;
-  const pct       = total ? Math.round((answered / total) * 100) : 0;
+  const q = questions[current];
+  const total = questions.length;
+  const answered = Object.keys(answers).length;
+  const pct = total ? Math.round((answered / total) * 100) : 0;
 
   const pick = (idx) => {
     if (!q || answers[q.id] !== undefined) return;
-    setAnswers(prev => ({ ...prev, [q.id]: idx }));
-    setTimeout(() => {
-      if (current < total - 1) setCurrent(c => c + 1);
-    }, 400);
+    setAnswers((prev) => ({ ...prev, [q.id]: idx }));
+    setTimeout(() => { if (current < total - 1) setCurrent((c) => c + 1); }, 400);
   };
 
   const submit = async () => {
@@ -62,21 +54,12 @@ export default function QuizPage() {
     setSubmitting(true);
     try {
       const payload = {
-        user_id:  parseInt(user.id),
+        user_id: parseInt(user.id),
         topic_id: parseInt(topicId),
-        answers:  Object.entries(answers).map(([qid, idx]) => ({
-          question_id:    parseInt(qid),
-          selected_index: idx,
-        })),
+        answers: Object.entries(answers).map(([qid, idx]) => ({ question_id: parseInt(qid), selected_index: idx })),
       };
       const res = await api.post("/learn/quiz/submit", payload);
-      sessionStorage.setItem("quizResult", JSON.stringify({
-        ...res.data,
-        topic_title: quizData.topic_title,
-        skill_name:  quizData.skill_name,
-        questions,
-        answers,
-      }));
+      sessionStorage.setItem("quizResult", JSON.stringify({ ...res.data, topic_title: quizData.topic_title, skill_name: quizData.skill_name, questions, answers }));
       router.push("/dashboard/learn/result");
     } catch (err) {
       const d = err.response?.data?.detail;
@@ -88,207 +71,56 @@ export default function QuizPage() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-[var(--bg-primary)] px-4 pb-24 pt-[80px] sm:px-5">
-        <div className="mx-auto flex max-w-4xl flex-col gap-6">
-
-          {/* ── HEADER ── */}
-          <div className="flex items-center justify-between pt-2">
-            <button onClick={() => router.back()}
-              className="text-sm font-medium text-[var(--text-primary)] transition-colors">
-              ← Back
-            </button>
-            {quizData && (
-              <span className="text-sm font-medium text-[var(--text-primary)]">
-                {quizData.skill_name} · {quizData.topic_title}
-              </span>
-            )}
-          </div>
-
-          {/* ── PROGRESS BAR ── */}
-          <div className="flex items-center gap-4 rounded-2xl border p-5"
-            style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}>
-            <div className="h-2.5 flex-1 overflow-hidden rounded-full"
-              style={{ background: "var(--border)" }}>
-              <motion.div
-                className="h-full rounded-full"
-                style={{ background: "var(--text-primary)" }}
-                initial={{ width: 0 }}
-                animate={{ width: `${pct}%` }}
-                transition={{ duration: 0.4 }}
-              />
+      <div className="min-h-screen bg-[var(--bg-primary)] px-4 pb-28 pt-[84px] sm:px-5">
+        <div className="mx-auto flex max-w-5xl flex-col gap-6">
+          <motion.section {...fadeUp(0)} className="theme-hero relative overflow-hidden rounded-[34px] border border-[var(--border)] bg-[var(--bg-card)] px-6 py-7 shadow-[0_28px_90px_rgba(3,7,18,0.34)] sm:px-8 sm:py-9">
+            <div className="absolute inset-0" style={{ background: "var(--hero-surface)" }} />
+            <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+              <div><button onClick={() => router.back()} className="mb-4 rounded-[16px] border border-white/10 bg-white/6 px-4 py-2 text-sm font-bold text-white">Back</button><p className="text-[11px] font-semibold uppercase tracking-[0.26em] text-sky-200/80">Quiz</p><h1 className="mt-3 text-[34px] font-black leading-[0.98] tracking-[-0.04em] text-white sm:text-[48px]">{quizData ? quizData.topic_title : "Generating quiz"}</h1><p className="mt-4 text-sm leading-7 text-slate-200/80">{quizData ? quizData.skill_name : "AI is preparing your questions."}</p></div>
+              <div className="rounded-[24px] border border-white/10 bg-black/20 p-5 backdrop-blur"><p className="text-[11px] uppercase tracking-[0.18em] text-slate-400">Answered</p><p className="mt-1 text-2xl font-black text-white">{answered}/{total}</p><div className="mt-4 h-3 w-48 overflow-hidden rounded-full bg-white/10"><motion.div className="h-full rounded-full" style={{ background: "var(--brand-gradient-strong)" }} initial={{ width: 0 }} animate={{ width: `${pct}%` }} /></div></div>
             </div>
-            <span className="shrink-0 text-sm font-semibold text-[var(--text-primary)]">
-              {answered}/{total}
-            </span>
-          </div>
+          </motion.section>
 
-          {/* ── ERROR ── */}
-          <AnimatePresence>
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                className="flex items-center gap-2 px-4 py-3 rounded-xl text-rose-400 text-sm font-medium bg-rose-500/10 border border-rose-500/20">
-                ⚠ {error}
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <AnimatePresence>{error ? <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="rounded-[18px] border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">{error}</motion.div> : null}</AnimatePresence>
 
-          {/* ── LOADING ── */}
-          {loading && (
-            <div className="flex flex-col items-center gap-4 rounded-2xl border p-12"
-              style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}>
-              <Spinner />
-              <p className="text-lg font-medium text-[var(--text-primary)]">
-                Generating questions with AI…
-              </p>
-            </div>
-          )}
+          {loading ? (
+            <div className="flex flex-col items-center gap-4 rounded-[30px] border border-[var(--border)] bg-[var(--bg-card)] p-12 shadow-[0_24px_80px_rgba(3,7,18,0.24)]"><Spinner /><p className="text-lg font-bold text-[var(--text-primary)]">Generating questions with AI...</p></div>
+          ) : null}
 
-          {/* ── QUESTION CARD ── */}
           <AnimatePresence mode="wait">
-            {!loading && q && (
-              <motion.div
-                key={current}
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                transition={{ duration: 0.2 }}
-                className="flex flex-col gap-7 rounded-[28px] border p-6 sm:p-7"
-                style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}
-              >
-                {/* Q number + text */}
-                <div>
-                  <p className="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--text-primary)]">
-                    Question {current + 1} of {total}
-                  </p>
-                  <h2 className="text-[24px] font-semibold leading-9 tracking-tight"
-                    style={{ color: "var(--text-primary)" }}>
-                    {q.question_text}
-                  </h2>
-                </div>
-
-                {/* Options */}
-                <div className="flex flex-col gap-3.5">
-                  {q.options.map((opt, idx) => {
-                    const isSelected  = answers[q.id] === idx;
-                    const isAnswered  = answers[q.id] !== undefined;
-                    return (
-                      <button
-                        key={idx}
-                        onClick={() => pick(idx)}
-                        className="flex items-start gap-3 rounded-2xl border p-4 text-left text-base transition-all duration-150"
-                        style={{
-                          background:   isSelected
-                            ? "var(--text-primary)"
-                            : isAnswered
-                              ? "var(--bg-secondary)"
-                              : "var(--bg-secondary)",
-                          borderColor:  isSelected
-                            ? "var(--text-primary)"
-                            : "var(--border)",
-                          color:        isSelected
-                            ? "var(--bg-primary)"
-                            : isAnswered
-                              ? "var(--text-primary)"
-                              : "var(--text-primary)",
-                          cursor:       isAnswered && !isSelected ? "default" : "pointer",
-                          opacity:      isAnswered && !isSelected ? 0.5 : 1,
-                        }}
-                      >
-                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border text-sm font-bold transition-all"
-                          style={{
-                            background:  isSelected ? "var(--bg-primary)" : "var(--bg-card)",
-                            borderColor: isSelected ? "var(--bg-primary)" : "var(--border)",
-                            color:       "var(--text-primary)",
-                          }}>
-                          {LABELS[idx]}
-                        </span>
-                        <span className="pt-0.5 leading-7">{opt}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Nav */}
-                <div className="flex items-center justify-between border-t pt-4"
-                  style={{ borderColor: "var(--border)" }}>
-                  <div className="flex gap-2">
-                    {current > 0 && (
-                      <button onClick={() => setCurrent(c => c - 1)}
-                        className="rounded-xl border px-4 py-2 text-sm font-medium text-[var(--text-primary)] transition-all"
-                        style={{ borderColor: "var(--border)", background: "var(--bg-secondary)" }}>
-                        ← Prev
-                      </button>
-                    )}
-                    {current < total - 1 && (
-                      <button onClick={() => setCurrent(c => c + 1)}
-                        className="rounded-xl border px-4 py-2 text-sm font-medium text-[var(--text-primary)] transition-all"
-                        style={{ borderColor: "var(--border)", background: "var(--bg-secondary)" }}>
-                        Next →
-                      </button>
-                    )}
+            {!loading && q ? (
+              <motion.div key={current} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }} className="relative overflow-hidden rounded-[30px] border border-[var(--border)] bg-[var(--bg-card)] p-5 shadow-[0_24px_80px_rgba(3,7,18,0.24)] sm:p-7">
+                <div className="absolute inset-0 opacity-80" style={{ background: "var(--panel-glow)" }} />
+                <div className="relative">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--text-muted)]">Question {current + 1} of {total}</p>
+                  <h2 className="mt-3 text-[24px] font-black leading-9 tracking-[-0.03em] text-[var(--text-primary)]">{q.question_text}</h2>
+                  <div className="mt-7 flex flex-col gap-3">
+                    {q.options.map((opt, idx) => {
+                      const isSelected = answers[q.id] === idx;
+                      const isAnswered = answers[q.id] !== undefined;
+                      return (
+                        <button key={idx} onClick={() => pick(idx)} className="flex items-start gap-3 rounded-[22px] border p-4 text-left transition-all hover:-translate-y-0.5" style={{ background: isSelected ? "rgba(56,189,248,0.12)" : "var(--bg-secondary)", borderColor: isSelected ? "rgba(56,189,248,0.24)" : "var(--border)", opacity: isAnswered && !isSelected ? 0.55 : 1 }}>
+                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[14px] border border-[var(--border)] bg-[var(--bg-card)] text-sm font-black text-[var(--text-primary)]">{LABELS[idx]}</span>
+                          <span className="pt-1 text-sm leading-7 text-[var(--text-primary)]">{opt}</span>
+                        </button>
+                      );
+                    })}
                   </div>
-
-                  <button
-                    onClick={submit}
-                    disabled={submitting || answered === 0}
-                    className="flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all duration-150 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
-                    style={{
-                      background: answered === total ? "var(--text-primary)" : "var(--bg-secondary)",
-                      color:      answered === total ? "var(--bg-primary)"   : "var(--text-primary)",
-                      borderColor: "var(--border)",
-                    }}
-                  >
-                    {submitting
-                      ? <><Spinner /> Submitting…</>
-                      : answered === total
-                        ? "Submit ✓"
-                        : `Submit (${answered}/${total})`
-                    }
-                  </button>
+                  <div className="mt-6 flex flex-col gap-3 border-t border-[var(--border)] pt-5 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex gap-2">{current > 0 ? <button onClick={() => setCurrent((c) => c - 1)} className="rounded-[16px] border border-[var(--border)] bg-[var(--bg-secondary)] px-4 py-2 text-sm font-bold text-[var(--text-primary)]">Prev</button> : null}{current < total - 1 ? <button onClick={() => setCurrent((c) => c + 1)} className="rounded-[16px] border border-[var(--border)] bg-[var(--bg-secondary)] px-4 py-2 text-sm font-bold text-[var(--text-primary)]">Next</button> : null}</div>
+                    <button onClick={submit} disabled={submitting || answered === 0} className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-[18px] px-5 text-sm font-bold text-slate-950 disabled:opacity-40" style={{ background: "var(--brand-gradient)" }}>{submitting ? <><Spinner /> Submitting...</> : answered === total ? "Submit" : `Submit (${answered}/${total})`}</button>
+                  </div>
                 </div>
               </motion.div>
-            )}
+            ) : null}
           </AnimatePresence>
 
-          {/* ── QUESTION NAVIGATOR ── */}
-          {!loading && questions.length > 0 && (
-            <div className="rounded-2xl border p-5"
-              style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}>
-              <p className="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--text-primary)]">
-                Jump to question
-              </p>
-              <div className="flex flex-wrap gap-2.5">
-                {questions.map((q2, i) => (
-                  <button
-                    key={q2.id}
-                    onClick={() => setCurrent(i)}
-                    className="h-9 w-9 rounded-xl border text-sm font-semibold transition-all"
-                    style={{
-                      background:  current === i
-                        ? "var(--text-primary)"
-                        : answers[q2.id] !== undefined
-                          ? "var(--bg-secondary)"
-                          : "var(--bg-secondary)",
-                      color:       current === i
-                        ? "var(--bg-primary)"
-                        : answers[q2.id] !== undefined
-                          ? "var(--text-primary)"
-                          : "var(--text-primary)",
-                      borderColor: current === i
-                        ? "var(--text-primary)"
-                        : answers[q2.id] !== undefined
-                          ? "var(--border)"
-                          : "var(--border)",
-                    }}
-                  >
-                    {i + 1}
-                  </button>
-                ))}
-              </div>
+          {!loading && questions.length > 0 ? (
+            <div className="rounded-[24px] border border-[var(--border)] bg-[var(--bg-card)] p-5">
+              <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--text-muted)]">Jump to question</p>
+              <div className="flex flex-wrap gap-2">{questions.map((q2, i) => <button key={q2.id} onClick={() => setCurrent(i)} className="h-10 w-10 rounded-[14px] border text-sm font-black" style={{ background: current === i ? "rgba(56,189,248,0.12)" : answers[q2.id] !== undefined ? "var(--bg-secondary)" : "var(--bg-card)", borderColor: current === i ? "rgba(56,189,248,0.24)" : "var(--border)", color: "var(--text-primary)" }}>{i + 1}</button>)}</div>
             </div>
-          )}
-
+          ) : null}
         </div>
       </div>
     </ProtectedRoute>

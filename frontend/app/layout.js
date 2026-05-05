@@ -10,7 +10,7 @@ export default function RootLayout({ children }) {
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
           <AuthProvider>
             <Navbar />
-            <main className="pt-20 px-6">
+            <main>
               {children}
             </main>
           </AuthProvider>
