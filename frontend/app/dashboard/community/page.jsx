@@ -132,7 +132,7 @@ function ReplyComposer({ onSubmit, onCancel, userName }) {
         <button
           onClick={submit}
           disabled={!text.trim() || posting}
-          className="rounded-[14px] px-4 py-2 text-xs font-bold text-slate-950 transition-all disabled:opacity-40"
+          className="rounded-[14px] px-4 py-2 text-xs font-bold text-white transition-all disabled:opacity-40"
           style={{ background: "var(--brand-gradient)" }}
         >
           {posting ? "Posting..." : "Reply"}
@@ -391,7 +391,7 @@ export default function CommunityPage() {
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     onClick={() => setShowComposer(true)}
-                    className="inline-flex min-h-[52px] w-fit items-center gap-2 rounded-[20px] px-5 text-sm font-bold text-slate-950"
+                    className="inline-flex min-h-[52px] w-fit items-center gap-2 rounded-[20px] px-5 text-sm font-bold text-white"
                     style={{
                       background: "var(--brand-gradient)",
                       boxShadow: "0 18px 50px rgba(125, 211, 252, 0.18)",
@@ -433,7 +433,7 @@ export default function CommunityPage() {
                       <button
                         onClick={handlePost}
                         disabled={!text.trim() || posting}
-                        className="rounded-[16px] px-5 py-2 text-xs font-bold text-slate-950 transition-all disabled:opacity-40"
+                        className="rounded-[16px] px-5 py-2 text-xs font-bold text-white transition-all disabled:opacity-40"
                         style={{ background: "var(--brand-gradient)" }}
                       >
                         {posting ? "Posting..." : "Post"}

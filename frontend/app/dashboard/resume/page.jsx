@@ -420,7 +420,7 @@ export default function ResumeAnalyzer() {
                 <button
                   onClick={uploadResume}
                   disabled={loading || !file || !jdId}
-                  className="inline-flex min-h-[58px] items-center justify-center gap-2 rounded-[22px] px-6 text-base font-bold text-slate-950 transition-all duration-200 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="inline-flex min-h-[58px] items-center justify-center gap-2 rounded-[22px] px-6 text-base font-bold text-white transition-all duration-200 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
                   style={{
                     background: "var(--brand-gradient)",
                     boxShadow: "0 18px 50px rgba(125, 211, 252, 0.18)",
@@ -490,7 +490,7 @@ export default function ResumeAnalyzer() {
                   </div>
                 }
               >
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-4">
                   <ResultCard title="Matched Skills" icon="match" tone={colors.emerald} delay={0}>
                     <div className="flex flex-wrap gap-2">
                       {analysis.matched_skills?.length > 0
@@ -515,7 +515,7 @@ export default function ResumeAnalyzer() {
                     </div>
                   </ResultCard>
 
-                  {detectedSkills.length > 0 ? (
+                  {/* {detectedSkills.length > 0 ? (
                     <ResultCard title="Detected Skills" icon="skills" tone={colors.violet} delay={0.12}>
                       <div className="flex flex-wrap gap-2">
                         {detectedSkills.map(([skill, score]) => (
@@ -523,7 +523,7 @@ export default function ResumeAnalyzer() {
                         ))}
                       </div>
                     </ResultCard>
-                  ) : null}
+                  ) : null} */}
                 </div>
               </Panel>
             </motion.div>
@@ -548,7 +548,7 @@ export default function ResumeAnalyzer() {
                   <ResultCard title="Suggestions" icon="suggestions" tone={colors.sky}>
                     <ul className="flex flex-col gap-3">
                       {analysis.improvement_suggestions.map((suggestion, index) => (
-                        <li key={index} className="flex gap-3 text-sm leading-7 text-[var(--text-secondary)]">
+                        <li key={index} className="flex gap-3 text-sm font-bold leading-7 text-[var(--text-secondary)]">
                           <span className="mt-0.5 shrink-0 font-mono text-xs text-[var(--text-muted)]">
                             {String(index + 1).padStart(2, "0")}.
                           </span>
@@ -558,8 +558,58 @@ export default function ResumeAnalyzer() {
                     </ul>
                   </ResultCard>
                 </Panel>
+              
               </motion.div>
+              
             ) : null}
+          <motion.section
+            {...fadeUp(0.24)}
+            className="relative overflow-hidden rounded-[30px] border border-[var(--border)] bg-[var(--bg-card)] p-5 shadow-[0_28px_80px_rgba(3,7,18,0.24)] sm:p-6"
+          >
+            <div
+              className="absolute inset-0"
+              style={{
+                background:
+                  "linear-gradient(135deg, rgba(56,189,248,0.08), rgba(245,158,11,0.08) 55%, rgba(16,185,129,0.08))",
+              }}
+            />
+
+            <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--text-muted)]">
+                  Next Step
+                </p>
+
+                <h2 className="mt-2 text-2xl font-black tracking-[-0.03em] text-[var(--text-primary)]">
+                  Continue your interview preparation
+                </h2>
+
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--text-secondary)]">
+                  Use this analyzed resume and JD context to start a focused mock interview experience.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <button
+                  onClick={reset}
+                  className="inline-flex min-h-[52px] items-center justify-center rounded-[20px] border border-[var(--border)] bg-[var(--bg-secondary)] px-5 text-sm font-bold text-[var(--text-primary)]"
+                >
+                  New Analysis
+                </button>
+
+                <button
+                  onClick={() => window.location.href = "/dashboard/interview"}
+                  className="inline-flex min-h-[52px] items-center justify-center rounded-[20px] px-5 text-sm font-bold text-white"
+                  style={{
+                    background: "var(--brand-gradient)",
+                    boxShadow: "0 18px 50px rgba(125, 211, 252, 0.18)",
+                  }}
+                >
+                  Start Interview
+                </button>
+              </div>
+            </div>
+          </motion.section>
           </>
         ) : null}
       </div>

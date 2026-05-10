@@ -31,7 +31,7 @@ export default function ResultPage() {
       <div className="flex min-h-screen items-center justify-center bg-[var(--bg-primary)] px-4 text-center">
         <div className="rounded-[30px] border border-[var(--border)] bg-[var(--bg-card)] p-8">
           <p className="text-base text-[var(--text-primary)]">No result found.</p>
-          <button onClick={() => router.push("/dashboard/learn")} className="mt-4 rounded-[18px] px-5 py-3 text-sm font-bold text-slate-950" style={{ background: "var(--brand-gradient)" }}>Go back</button>
+          <button onClick={() => router.push("/dashboard/learn")} className="mt-4 rounded-[18px] px-5 py-3 text-sm font-bold text-white" style={{ background: "var(--brand-gradient)" }}>Go back</button>
         </div>
       </div>
     </ProtectedRoute>
@@ -67,7 +67,7 @@ export default function ResultPage() {
               <div className="mb-3 flex justify-between text-sm font-bold text-[var(--text-primary)]"><span>Pass requirement</span><span className={passed ? "text-emerald-300" : "text-rose-300"}>{pct}% · {passed ? "PASSED" : "FAILED"}</span></div>
               <div className="h-3 overflow-hidden rounded-full bg-[var(--border)]"><motion.div className="h-full rounded-full" style={{ width: `${pct}%`, background: passed ? "#34d399" : "#fb7185" }} /></div>
               <div className="mt-5 flex flex-wrap gap-3">
-                <button onClick={() => router.push("/dashboard/learn")} className="rounded-[18px] px-5 py-3 text-sm font-bold text-slate-950" style={{ background: "var(--brand-gradient)" }}>More Topics</button>
+                <button onClick={() => router.push("/dashboard/learn")} className="rounded-[18px] px-5 py-3 text-sm font-bold text-white" style={{ background: "var(--brand-gradient)" }}>More Topics</button>
                 <button onClick={() => setShowReview(!showReview)} className="rounded-[18px] border border-[var(--border)] bg-[var(--bg-secondary)] px-5 py-3 text-sm font-bold text-[var(--text-primary)]">{showReview ? "Hide Review" : "Review Answers"}</button>
                 <button onClick={() => router.push("/dashboard/learn/stats")} className="rounded-[18px] border border-[var(--border)] bg-[var(--bg-secondary)] px-5 py-3 text-sm font-bold text-[var(--text-primary)]">My Stats</button>
               </div>

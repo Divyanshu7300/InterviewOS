@@ -71,7 +71,7 @@ export default function Home() {
               <div className="mt-7 flex flex-col gap-3 sm:flex-row">
                 <Link
                   href="/login"
-                  className="inline-flex min-h-[52px] items-center justify-center rounded-[20px] px-5 text-sm font-bold text-slate-950 no-underline"
+                  className="inline-flex min-h-[52px] items-center justify-center rounded-[20px] px-5 text-sm font-bold text-white no-underline"
                   style={{ background: "var(--brand-gradient)", boxShadow: "0 18px 50px rgba(125, 211, 252, 0.2)" }}
                 >
                   Get Started

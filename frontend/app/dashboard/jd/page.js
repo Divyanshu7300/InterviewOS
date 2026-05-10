@@ -265,7 +265,7 @@ export default function JDAnalyzer() {
                 <button
                   onClick={analyzeJD}
                   disabled={loading || !trimmedText}
-                  className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-[18px] px-5 text-sm font-bold text-slate-950 transition-all duration-200 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
+                  className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-[18px] px-5 text-sm font-bold text-white transition-all duration-200 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
                   style={{
                     background: "var(--brand-gradient)",
                     boxShadow: "0 18px 50px rgba(125, 211, 252, 0.18)",
@@ -328,7 +328,7 @@ export default function JDAnalyzer() {
                 </div>
               </ResultCard>
 
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4">
                 <ResultCard title="Tech Stack" icon="stack" tone={colors.sky} delay={0.05}>
                   <div className="flex flex-wrap gap-2">
                     {result.tech_stack?.map((item) => (
@@ -413,7 +413,7 @@ export default function JDAnalyzer() {
                 </button>
                 <button
                   onClick={() => router.push("/dashboard/interview")}
-                  className="inline-flex min-h-[52px] items-center justify-center rounded-[20px] px-5 text-sm font-bold text-slate-950"
+                  className="inline-flex min-h-[52px] items-center justify-center rounded-[20px] px-5 text-sm font-bold text-white"
                   style={{
                     background: "var(--brand-gradient)",
                     boxShadow: "0 18px 50px rgba(125, 211, 252, 0.18)",

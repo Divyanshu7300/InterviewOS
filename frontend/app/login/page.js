@@ -164,7 +164,7 @@ export default function LoginPage() {
                   ) : null}
                 </AnimatePresence>
 
-                <button onClick={handleLogin} disabled={loading} className="mt-1 inline-flex min-h-[54px] w-full items-center justify-center gap-2 rounded-[20px] px-5 text-sm font-bold text-slate-950 transition-all active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40" style={{ background: "var(--brand-gradient)", boxShadow: "0 18px 50px rgba(125, 211, 252, 0.18)" }}>
+                <button onClick={handleLogin} disabled={loading} className="mt-1 inline-flex min-h-[54px] w-full items-center justify-center gap-2 rounded-[20px] px-5 text-sm font-bold text-white transition-all active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40" style={{ background: "var(--brand-gradient)", boxShadow: "0 18px 50px rgba(125, 211, 252, 0.18)" }}>
                   {loading ? <><Spinner /> Signing in...</> : "Sign in"}
                 </button>
 

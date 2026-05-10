@@ -205,7 +205,7 @@ export default function InterviewRecordingPage() {
                 <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-300">Session Preview</p>
                 <p className="mt-5 text-lg font-bold text-white">{session?.roleTitle || "Interview Recording"}</p>
                 <p className="mt-2 text-sm leading-6 text-slate-200/80">{recordingLoading ? "Checking browser storage..." : recordedUrl ? "Recording is available for review." : "No saved recording found yet."}</p>
-                <button onClick={() => router.push("/dashboard/interview")} className="mt-5 inline-flex min-h-[48px] w-full items-center justify-center rounded-[18px] px-4 text-sm font-bold text-slate-950" style={{ background: "var(--brand-gradient)" }}>
+                <button onClick={() => router.push("/dashboard/interview")} className="mt-5 inline-flex min-h-[48px] w-full items-center justify-center rounded-[18px] px-4 text-sm font-bold text-white" style={{ background: "var(--brand-gradient)" }}>
                   Back to Interview
                 </button>
               </div>
@@ -219,7 +219,7 @@ export default function InterviewRecordingPage() {
           ) : !recordedUrl ? (
             <motion.div {...fadeUp(0.08)}>
               <Panel eyebrow="Empty State" title="No recording found" description="Record your next interview session to review it here.">
-                <button onClick={() => router.push("/dashboard/interview")} className="inline-flex min-h-[52px] w-fit items-center justify-center rounded-[20px] px-5 text-sm font-bold text-slate-950" style={{ background: "var(--brand-gradient)" }}>
+                <button onClick={() => router.push("/dashboard/interview")} className="inline-flex min-h-[52px] w-fit items-center justify-center rounded-[20px] px-5 text-sm font-bold text-white" style={{ background: "var(--brand-gradient)" }}>
                   Start an Interview
                 </button>
               </Panel>
@@ -257,9 +257,9 @@ export default function InterviewRecordingPage() {
                           key={item}
                           onClick={() => toggleCheck(item)}
                           className="flex items-center gap-3 rounded-[20px] border px-4 py-3.5 text-left transition-all hover:-translate-y-0.5"
-                          style={{ background: done ? "rgba(52,211,153,0.08)" : "var(--bg-secondary)", borderColor: done ? "rgba(52,211,153,0.22)" : "var(--border)" }}
+                          style={{ background: done ? "var(--selected-bg)" : "var(--bg-secondary)", borderColor: done ? "var(--selected-border)" : "var(--border)", boxShadow: done ? "0 14px 36px var(--selected-ring)" : "none" }}
                         >
-                          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-[8px] border text-xs font-black" style={{ background: done ? "#34d399" : "transparent", borderColor: done ? "#34d399" : "var(--border)", color: done ? "#0c0c0e" : "var(--text-primary)" }}>
+                          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-[8px] border text-xs font-black" style={{ background: done ? "var(--brand-gradient)" : "transparent", borderColor: done ? "var(--selected-border)" : "var(--border)", color: done ? "#fff" : "var(--text-primary)" }}>
                             {done ? "✓" : ""}
                           </span>
                           <span className="text-sm leading-6 text-[var(--text-primary)]">{item}</span>

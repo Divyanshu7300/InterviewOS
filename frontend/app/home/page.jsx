@@ -260,7 +260,7 @@ export default function HomePage() {
                   <p className="text-sm leading-6 text-slate-200/80">Use that same role context everywhere else.</p>
                   <Link
                     href="/dashboard/jd"
-                    className="inline-flex min-h-[52px] w-full items-center justify-center rounded-[20px] px-5 text-sm font-bold text-slate-950 no-underline transition-all duration-200 active:scale-[0.99]"
+                    className="inline-flex min-h-[52px] w-full items-center justify-center rounded-[20px] px-5 text-sm font-bold text-white no-underline transition-all duration-200 active:scale-[0.99]"
                     style={{
                       background: "var(--brand-gradient)",
                       boxShadow: "0 18px 50px rgba(125, 211, 252, 0.2)",
@@ -347,7 +347,7 @@ export default function HomePage() {
                 </Link>
                 <Link
                   href="/dashboard/interview"
-                  className="inline-flex min-h-[52px] items-center justify-center rounded-[20px] px-5 text-sm font-bold text-slate-950 no-underline"
+                  className="inline-flex min-h-[52px] items-center justify-center rounded-[20px] px-5 text-sm font-bold text-white no-underline"
                   style={{
                     background: "var(--brand-gradient)",
                     boxShadow: "0 18px 50px rgba(125, 211, 252, 0.18)",

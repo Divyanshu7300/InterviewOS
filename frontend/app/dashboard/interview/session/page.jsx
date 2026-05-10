@@ -188,11 +188,11 @@ function Message({ role, content, score }) {
 
 function StatChip({ label, value, accent }) {
   return (
-    <div className="min-w-[112px] rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] px-3.5 py-3">
-      <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--text-primary)]">
+    <div className="min-w-[96px] rounded-[16px] border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-primary)]">
         {label}
       </p>
-      <p className="mt-1 text-[15px] font-bold" style={{ color: accent || "var(--text-primary)" }}>
+      <p className="mt-0.5 text-[13px] font-bold" style={{ color: accent || "var(--text-primary)" }}>
         {value}
       </p>
     </div>
@@ -760,7 +760,7 @@ export default function InterviewSessionPage() {
 
   return (
     <ProtectedRoute>
-      <div className="mt-[72px] h-[calc(100dvh-72px)] overflow-hidden bg-[var(--bg-primary)] px-3 pb-3">
+      <div className="h-[100dvh] overflow-hidden bg-[var(--bg-primary)] px-3 py-3">
 
         {/* ── TOP BAR ── */}
         <div className="relative mb-3 flex h-14 shrink-0 items-center justify-between overflow-hidden rounded-[24px] border border-[var(--border)] bg-[var(--bg-card)] px-4 py-3 shadow-[0_18px_60px_rgba(3,7,18,0.22)] sm:px-5">
@@ -818,7 +818,7 @@ export default function InterviewSessionPage() {
                 background: "var(--bg-card)",
               }}>
               <div className="absolute inset-0 opacity-80" style={{ background: "var(--panel-glow)" }} />
-              <div className="px-4 py-4 flex flex-col gap-4">
+              <div className="px-3 py-2.5 flex flex-col gap-2.5">
                 <div className="flex flex-wrap gap-2">
                   <StatChip label="Momentum" value={analytics.momentumLabel} accent="#38bdf8" />
                   <StatChip label="Responses" value={`${analytics.answeredCount} answered`} accent="#4ade80" />
@@ -828,14 +828,14 @@ export default function InterviewSessionPage() {
 
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--text-primary)]">
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-primary)]">
                       Confidence Track
                     </span>
-                    <span className="text-sm font-medium text-[var(--text-primary)]">
+                    <span className="text-[11px] font-medium text-[var(--text-primary)]">
                       {Math.round(analytics.progressPct)}% of 20-question benchmark
                     </span>
                   </div>
-                  <div className="h-2.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.08)" }}>
+                  <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.08)" }}>
                     <div className="h-full rounded-full transition-all duration-500"
                       style={{
                         width: `${analytics.progressPct}%`,
@@ -1020,7 +1020,7 @@ export default function InterviewSessionPage() {
                   onClick={() => doSubmit(answerRef.current)}
                   disabled={loading || !answer.trim()}
                   className="flex-shrink-0 rounded-[18px] px-5 text-sm font-bold transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
-                  style={{ background: "var(--brand-gradient)", color: "rgb(15,23,42)" }}>
+                  style={{ background: "var(--brand-gradient)", color: "#fff" }}>
                   {loading ? "..." : "Submit"}
                 </button>
               </div>

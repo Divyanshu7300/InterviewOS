@@ -144,20 +144,33 @@ def get_or_generate_questions(
     # ── Step 3: Parse JSON ────────────────────────────────────────────────────
     questions_data = _parse_questions_json(raw)
 
-    cleaned_questions = _prepare_questions(questions_data, count=count)
+    existing_keys = {_dedupe_key(item.question_text) for item in existing}
+    cleaned_questions = [
+        item for item in _prepare_questions(questions_data, count=count)
+        if _dedupe_key(item["question_text"]) not in existing_keys
+    ]
 
-    if not cleaned_questions:
+    if len(existing) + len(cleaned_questions) < count:
         fallback_questions = _build_fallback_questions(topic=topic, skill_name=skill_name, count=count)
-        if fallback_questions:
-            cleaned_questions = fallback_questions
-        else:
-            raise RuntimeError("LLM returned invalid JSON for questions")
-    if len(cleaned_questions) < min(count, 5):
+        seen_keys = existing_keys | {_dedupe_key(item["question_text"]) for item in cleaned_questions}
+        for fallback in fallback_questions:
+            fallback_key = _dedupe_key(fallback["question_text"])
+            if fallback_key in seen_keys:
+                continue
+            cleaned_questions.append(fallback)
+            seen_keys.add(fallback_key)
+            if len(existing) + len(cleaned_questions) >= count:
+                break
+
+    if not cleaned_questions and not existing:
+        raise RuntimeError("LLM returned invalid JSON for questions")
+    if len(existing) + len(cleaned_questions) < count:
         raise RuntimeError("Generated quiz questions were too repetitive or malformed")
 
     # ── Step 4: DB mein save karo ─────────────────────────────────────────────
     saved = []
-    for q in cleaned_questions[:count]:
+    needed_count = max(count - len(existing), 0)
+    for q in cleaned_questions[:needed_count]:
         try:
             obj = LearningQuestion(
                 topic_id=topic.id,
@@ -176,8 +189,9 @@ def get_or_generate_questions(
     for obj in saved:
         db.refresh(obj)
 
+    combined = [*existing, *saved]
     print(f"[LEARN] Saved {len(saved)} questions for topic_id={topic.id}")
-    return saved, "regenerated" if force_regenerate else "generated"
+    return combined[:count], "regenerated" if force_regenerate else "generated"
 
 
 def _parse_questions_json(raw: str) -> list[dict]:

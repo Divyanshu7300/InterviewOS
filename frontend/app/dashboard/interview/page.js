@@ -116,9 +116,9 @@ function DifficultyCard({ level, active, onClick }) {
         active ? "translate-y-[-2px]" : "hover:-translate-y-1"
       }`}
       style={{
-        background: active ? meta.bg : "var(--surface-soft)",
-        borderColor: active ? meta.border : "var(--border)",
-        boxShadow: active ? `0 18px 48px ${meta.glow}` : "none",
+        background: active ? "var(--selected-bg)" : "var(--surface-soft)",
+        borderColor: active ? "var(--selected-border)" : "var(--border)",
+        boxShadow: active ? "0 18px 48px var(--selected-ring)" : "none",
       }}
     >
       <div className="flex items-start justify-between gap-4">
@@ -130,9 +130,9 @@ function DifficultyCard({ level, active, onClick }) {
         <span
           className="mt-1 flex h-5 w-5 items-center justify-center rounded-full border text-[11px]"
           style={{
-            borderColor: active ? meta.border : "var(--border)",
-            background: active ? "rgba(255,255,255,0.12)" : "transparent",
-            color: "var(--text-primary)",
+            borderColor: active ? "var(--selected-border)" : "var(--border)",
+            background: active ? "var(--brand-gradient)" : "transparent",
+            color: active ? "#fff" : "var(--text-primary)",
           }}
         >
           {active ? "●" : ""}
@@ -415,7 +415,7 @@ export default function InterviewSetupPage() {
                 type="button"
                 onClick={startInterview}
                 disabled={loading || !jdId}
-                className="inline-flex min-h-[58px] items-center justify-center rounded-[22px] px-6 text-base font-bold tracking-[0.01em] text-slate-950 transition-all duration-200 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
+                className="inline-flex min-h-[58px] items-center justify-center rounded-[22px] px-6 text-base font-bold tracking-[0.01em] text-white transition-all duration-200 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-40"
                 style={{
                   background: "var(--brand-gradient)",
                   boxShadow: "0 18px 50px rgba(125, 211, 252, 0.2)",

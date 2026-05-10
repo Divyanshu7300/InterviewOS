@@ -35,9 +35,9 @@ const icons = {
 };
 
 const activeStyle = {
-  background: "var(--accent-sky-soft)",
-  borderColor: "var(--accent-sky-border)",
-  boxShadow: "0 12px 34px rgba(15, 23, 42, 0.14)",
+  background: "var(--selected-bg)",
+  borderColor: "var(--selected-border)",
+  boxShadow: "0 12px 34px var(--selected-ring)",
 };
 
 const navLinks = [
@@ -69,7 +69,12 @@ export default function Navbar() {
   const router   = useRouter();
   const pathname = usePathname();
 
-  if (loading || !user || (!pathname.startsWith("/dashboard") && !pathname.startsWith("/home"))) return null;
+  if (
+    loading ||
+    !user ||
+    pathname === "/dashboard/interview/session" ||
+    (!pathname.startsWith("/dashboard") && !pathname.startsWith("/home"))
+  ) return null;
 
   const displayName = user.username
     ? `@${user.username}`

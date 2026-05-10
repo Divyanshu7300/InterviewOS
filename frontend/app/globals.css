@@ -35,8 +35,11 @@
   --accent-orange:        #c2410c;
   --accent-red:           #dc2626;
 
-  --brand-gradient: linear-gradient(135deg, #bae6fd, #fde68a 55%, #bbf7d0);
-  --brand-gradient-strong: linear-gradient(90deg, #0284c7, #d97706 55%, #059669);
+  --brand-gradient: linear-gradient(135deg, #ef4444, #dc2626 55%, #be123c);
+  --brand-gradient-strong: linear-gradient(90deg, #ef4444, #dc2626 55%, #be123c);
+  --selected-bg: rgba(220, 38, 38, 0.18);
+  --selected-border: rgba(220, 38, 38, 0.62);
+  --selected-ring: rgba(220, 38, 38, 0.28);
   --panel-glow: radial-gradient(circle at top right, rgba(2, 132, 199, 0.10), transparent 30%), radial-gradient(circle at bottom left, rgba(217, 119, 6, 0.10), transparent 28%);
   --hero-surface: radial-gradient(circle at top left, rgba(2, 132, 199, 0.16), transparent 28%), radial-gradient(circle at 85% 20%, rgba(217, 119, 6, 0.13), transparent 24%), linear-gradient(135deg, #ffffff, #eef2f7);
   --hero-card: rgba(255, 255, 255, 0.74);
@@ -81,8 +84,11 @@
   --accent-orange:        #fdba74;
   --accent-red:           #f87171;
 
-  --brand-gradient: linear-gradient(135deg, #e0f2fe, #fde68a 55%, #bbf7d0);
-  --brand-gradient-strong: linear-gradient(90deg, #4ade80, #38bdf8 55%, #f59e0b);
+  --brand-gradient: linear-gradient(135deg, #fb7185, #ef4444 52%, #be123c);
+  --brand-gradient-strong: linear-gradient(90deg, #fb7185, #ef4444 52%, #be123c);
+  --selected-bg: rgba(239, 68, 68, 0.24);
+  --selected-border: rgba(251, 113, 133, 0.78);
+  --selected-ring: rgba(244, 63, 94, 0.34);
   --panel-glow: radial-gradient(circle at top right, rgba(125, 211, 252, 0.12), transparent 30%), radial-gradient(circle at bottom left, rgba(251, 191, 36, 0.10), transparent 28%);
   --hero-surface: radial-gradient(circle at top left, rgba(125, 211, 252, 0.16), transparent 26%), radial-gradient(circle at 85% 20%, rgba(251, 191, 36, 0.14), transparent 22%), linear-gradient(135deg, rgba(15, 23, 42, 0.94), rgba(17, 24, 39, 0.72));
   --hero-card: rgba(0, 0, 0, 0.20);

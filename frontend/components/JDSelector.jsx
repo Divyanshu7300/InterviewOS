@@ -147,7 +147,7 @@ export default function JDSelector({
           </p>
           <Link
             href="/dashboard/jd"
-            className="mt-5 inline-flex min-h-[44px] items-center justify-center rounded-[16px] px-4 text-sm font-bold text-slate-950 no-underline"
+            className="mt-5 inline-flex min-h-[44px] items-center justify-center rounded-[16px] px-4 text-sm font-bold text-white no-underline"
             style={{ background: "var(--brand-gradient)" }}
           >
             Analyze a JD
@@ -195,9 +195,9 @@ export default function JDSelector({
                 isSelected ? "translate-y-[-2px]" : ""
               }`}
               style={{
-                background: isSelected ? "rgba(56, 189, 248, 0.12)" : "var(--bg-card)",
-                borderColor: isSelected ? tone.sky.border : "var(--border)",
-                boxShadow: isSelected ? "0 18px 48px rgba(56,189,248,0.14)" : "none",
+                background: isSelected ? "var(--selected-bg)" : "var(--bg-card)",
+                borderColor: isSelected ? "var(--selected-border)" : "var(--border)",
+                boxShadow: isSelected ? "0 18px 48px var(--selected-ring)" : "none",
               }}
             >
               <div
@@ -229,11 +229,11 @@ export default function JDSelector({
                 </div>
                 <span
                   className={`flex h-8 min-w-[86px] items-center justify-center gap-1.5 rounded-[14px] border px-3 text-xs font-bold ${
-                    isSelected ? "text-emerald-300" : "text-[var(--text-primary)]"
+                    isSelected ? "text-rose-300" : "text-[var(--text-primary)]"
                   }`}
                   style={{
-                    borderColor: isSelected ? tone.emerald.border : "var(--border)",
-                    background: isSelected ? tone.emerald.bg : "var(--bg-secondary)",
+                    borderColor: isSelected ? "var(--selected-border)" : "var(--border)",
+                    background: isSelected ? "var(--selected-bg)" : "var(--bg-secondary)",
                   }}
                 >
                   {isSelected ? <Icon d={icons.check} size={12} /> : null}

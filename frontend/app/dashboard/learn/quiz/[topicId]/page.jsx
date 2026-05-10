@@ -99,8 +99,8 @@ export default function QuizPage() {
                       const isSelected = answers[q.id] === idx;
                       const isAnswered = answers[q.id] !== undefined;
                       return (
-                        <button key={idx} onClick={() => pick(idx)} className="flex items-start gap-3 rounded-[22px] border p-4 text-left transition-all hover:-translate-y-0.5" style={{ background: isSelected ? "rgba(56,189,248,0.12)" : "var(--bg-secondary)", borderColor: isSelected ? "rgba(56,189,248,0.24)" : "var(--border)", opacity: isAnswered && !isSelected ? 0.55 : 1 }}>
-                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[14px] border border-[var(--border)] bg-[var(--bg-card)] text-sm font-black text-[var(--text-primary)]">{LABELS[idx]}</span>
+                        <button key={idx} onClick={() => pick(idx)} className="flex items-start gap-3 rounded-[22px] border p-4 text-left transition-all hover:-translate-y-0.5" style={{ background: isSelected ? "var(--selected-bg)" : "var(--bg-secondary)", borderColor: isSelected ? "var(--selected-border)" : "var(--border)", boxShadow: isSelected ? "0 16px 44px var(--selected-ring)" : "none", opacity: isAnswered && !isSelected ? 0.55 : 1 }}>
+                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[14px] border text-sm font-black" style={{ background: isSelected ? "var(--brand-gradient)" : "var(--bg-card)", borderColor: isSelected ? "var(--selected-border)" : "var(--border)", color: isSelected ? "#fff" : "var(--text-primary)" }}>{LABELS[idx]}</span>
                           <span className="pt-1 text-sm leading-7 text-[var(--text-primary)]">{opt}</span>
                         </button>
                       );
@@ -108,7 +108,7 @@ export default function QuizPage() {
                   </div>
                   <div className="mt-6 flex flex-col gap-3 border-t border-[var(--border)] pt-5 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex gap-2">{current > 0 ? <button onClick={() => setCurrent((c) => c - 1)} className="rounded-[16px] border border-[var(--border)] bg-[var(--bg-secondary)] px-4 py-2 text-sm font-bold text-[var(--text-primary)]">Prev</button> : null}{current < total - 1 ? <button onClick={() => setCurrent((c) => c + 1)} className="rounded-[16px] border border-[var(--border)] bg-[var(--bg-secondary)] px-4 py-2 text-sm font-bold text-[var(--text-primary)]">Next</button> : null}</div>
-                    <button onClick={submit} disabled={submitting || answered === 0} className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-[18px] px-5 text-sm font-bold text-slate-950 disabled:opacity-40" style={{ background: "var(--brand-gradient)" }}>{submitting ? <><Spinner /> Submitting...</> : answered === total ? "Submit" : `Submit (${answered}/${total})`}</button>
+                    <button onClick={submit} disabled={submitting || answered === 0} className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-[18px] px-5 text-sm font-bold text-white disabled:opacity-40" style={{ background: "var(--brand-gradient)" }}>{submitting ? <><Spinner /> Submitting...</> : answered === total ? "Submit" : `Submit (${answered}/${total})`}</button>
                   </div>
                 </div>
               </motion.div>
@@ -118,7 +118,7 @@ export default function QuizPage() {
           {!loading && questions.length > 0 ? (
             <div className="rounded-[24px] border border-[var(--border)] bg-[var(--bg-card)] p-5">
               <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--text-muted)]">Jump to question</p>
-              <div className="flex flex-wrap gap-2">{questions.map((q2, i) => <button key={q2.id} onClick={() => setCurrent(i)} className="h-10 w-10 rounded-[14px] border text-sm font-black" style={{ background: current === i ? "rgba(56,189,248,0.12)" : answers[q2.id] !== undefined ? "var(--bg-secondary)" : "var(--bg-card)", borderColor: current === i ? "rgba(56,189,248,0.24)" : "var(--border)", color: "var(--text-primary)" }}>{i + 1}</button>)}</div>
+              <div className="flex flex-wrap gap-2">{questions.map((q2, i) => <button key={q2.id} onClick={() => setCurrent(i)} className="h-10 w-10 rounded-[14px] border text-sm font-black" style={{ background: current === i ? "var(--brand-gradient)" : answers[q2.id] !== undefined ? "var(--selected-bg)" : "var(--bg-card)", borderColor: current === i || answers[q2.id] !== undefined ? "var(--selected-border)" : "var(--border)", boxShadow: current === i ? "0 10px 28px var(--selected-ring)" : "none", color: current === i ? "#fff" : "var(--text-primary)" }}>{i + 1}</button>)}</div>
             </div>
           ) : null}
         </div>

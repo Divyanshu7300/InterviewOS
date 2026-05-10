@@ -480,7 +480,7 @@ export default function InterviewResultPage() {
           <motion.div {...fadeUp(0.3)} className="flex flex-wrap gap-3">
             <Link
               href="/dashboard/interview"
-              className="inline-flex min-h-[52px] items-center justify-center rounded-[20px] px-5 text-sm font-bold text-slate-950 no-underline transition-all"
+              className="inline-flex min-h-[52px] items-center justify-center rounded-[20px] px-5 text-sm font-bold text-white no-underline transition-all"
               style={{ background: "var(--brand-gradient)" }}
             >
               Start New Interview

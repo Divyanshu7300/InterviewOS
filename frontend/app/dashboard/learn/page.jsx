@@ -147,7 +147,7 @@ export default function LearnPage() {
                   <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Progress</p>
                   <p className="mt-1 text-base font-bold text-white">{completedCount} / {allTopics.length || 0} topics</p>
                 </div>
-                <button onClick={() => router.push("/dashboard/learn/stats")} className="mt-5 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-[18px] px-4 text-sm font-bold text-slate-950" style={{ background: "var(--brand-gradient)" }}>
+                <button onClick={() => router.push("/dashboard/learn/stats")} className="mt-5 inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-[18px] px-4 text-sm font-bold text-white" style={{ background: "var(--brand-gradient)" }}>
                   <Icon d={icons.stats} size={15} /> My Stats
                 </button>
               </div>
@@ -174,10 +174,10 @@ export default function LearnPage() {
                           onClick={() => fetchTopics(skill)}
                           className="flex min-h-[42px] items-center gap-2 rounded-[16px] border px-4 text-sm font-bold transition-all hover:-translate-y-0.5"
                           style={{
-                            background: active ? "rgba(56, 189, 248, 0.12)" : "var(--bg-secondary)",
-                            borderColor: active ? "rgba(56, 189, 248, 0.24)" : "var(--border)",
+                            background: active ? "var(--selected-bg)" : "var(--bg-secondary)",
+                            borderColor: active ? "var(--selected-border)" : "var(--border)",
                             color: "var(--text-primary)",
-                            boxShadow: active ? "0 14px 36px rgba(56,189,248,0.12)" : "none",
+                            boxShadow: active ? "0 14px 36px var(--selected-ring)" : "none",
                           }}
                         >
                           {skill.logo_url ? <Image src={skill.logo_url} alt={`${skill.name} logo`} width={16} height={16} unoptimized className="h-4 w-4 object-contain" /> : null}

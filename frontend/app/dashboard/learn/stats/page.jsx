@@ -81,7 +81,7 @@ export default function StatsPage() {
                 <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-300">My Rank</p>
                 <p className="mt-5 text-3xl font-black text-white">{myRank ? `#${myRank.rank}` : "-"}</p>
                 <p className="mt-2 text-sm text-slate-300">{leaderboard?.total_users || 0} total learners</p>
-                <button onClick={() => router.push("/dashboard/learn")} className="mt-5 inline-flex min-h-[48px] w-full items-center justify-center rounded-[18px] px-4 text-sm font-bold text-slate-950" style={{ background: "var(--brand-gradient)" }}>Back to Learn</button>
+                <button onClick={() => router.push("/dashboard/learn")} className="mt-5 inline-flex min-h-[48px] w-full items-center justify-center rounded-[18px] px-4 text-sm font-bold text-white" style={{ background: "var(--brand-gradient)" }}>Back to Learn</button>
               </div>
             </div>
           </motion.section>
@@ -109,7 +109,7 @@ export default function StatsPage() {
                     {leaderboard.entries.map((entry, i) => {
                       const isMe = entry.user_id === user?.id;
                       return (
-                        <div key={entry.user_id} className="flex items-center gap-4 rounded-[20px] border px-4 py-3" style={{ background: isMe ? "rgba(56,189,248,0.1)" : "var(--bg-secondary)", borderColor: isMe ? "rgba(56,189,248,0.24)" : "var(--border)" }}>
+                        <div key={entry.user_id} className="flex items-center gap-4 rounded-[20px] border px-4 py-3" style={{ background: isMe ? "var(--selected-bg)" : "var(--bg-secondary)", borderColor: isMe ? "var(--selected-border)" : "var(--border)", boxShadow: isMe ? "0 14px 36px var(--selected-ring)" : "none" }}>
                           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[14px] border border-[var(--border)] bg-[var(--bg-card)] text-sm font-black text-[var(--text-primary)]">{MEDALS[i] || entry.rank}</span>
                           <div className="min-w-0 flex-1"><p className="truncate text-sm font-bold text-[var(--text-primary)]">{isMe ? "You" : entry.email}</p><p className="text-xs text-[var(--text-secondary)]">{entry.topics_completed} topics · {entry.current_streak} streak</p></div>
                           <span className="text-sm font-black text-[var(--text-primary)]">{entry.total_xp.toLocaleString()} XP</span>
