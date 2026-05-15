@@ -27,10 +27,10 @@ Rules:
 - Do not generate broad questions about the whole skill unless they directly test "{topic_title}"
 - Do not pull in sibling topics from {skill_name}; stay inside the selected topic
 - Level appropriate: {level} means {level_desc}
-- For a 15-question quiz, cover the selected topic with a balanced spread:
-  - 5 fundamentals/definitions
-  - 5 applied scenario questions
-  - 5 common mistakes, edge cases, or interview-style reasoning questions
+- For a 10-question quiz, cover the selected topic with a balanced spread:
+  - 3 fundamentals/definitions
+  - 4 applied scenario questions
+  - 3 common mistakes, edge cases, or interview-style reasoning questions
 - Focus on one concrete concept per question
 - Each question has exactly 4 options
 - Only one correct answer per question
@@ -81,7 +81,7 @@ Requirements:
 - Do not generate broad questions about the whole skill unless they directly test "{topic_title}"
 - Do not pull in sibling topics from {skill_name}; stay inside the selected topic
 - Level appropriate: {level} means {level_desc}
-- For a 15-question quiz, cover the selected topic with a balanced spread: 5 fundamentals, 5 applied scenarios, and 5 common mistakes/edge cases/interview reasoning questions
+- For a 10-question quiz, cover the selected topic with a balanced spread: 3 fundamentals, 4 applied scenarios, and 3 common mistakes/edge cases/interview reasoning questions
 - Avoid repeated or generic questions
 - Each question must have exactly 4 distinct options
 - Only one correct answer per question
@@ -112,12 +112,47 @@ Content to repair:
 {raw}
 """
 
+QUESTION_ALTERNATIVES_PROMPT = """
+You are an expert programming educator improving an MCQ quiz.
+
+Skill: {skill_name}
+Topic: {topic_title}
+Level: {level}
+Description: {description}
+
+The quiz still needs {candidate_count} additional MCQ questions.
+
+Already accepted questions to avoid:
+{accepted_questions}
+
+Rules:
+- Generate fresh alternatives only for "{topic_title}"
+- Do not repeat, rephrase, or slightly modify any accepted question above
+- Do not generate broad questions about the whole skill unless they directly test "{topic_title}"
+- Do not pull in sibling topics from {skill_name}; stay inside the selected topic
+- Use realistic distractors, not obviously silly options
+- Prefer applied scenarios, edge cases, common mistakes, and interview reasoning
+- Each question has exactly 4 distinct options
+- Only one correct answer per question
+- Include a brief explanation for the correct answer
+
+Return ONLY a valid JSON array, no markdown, no explanation:
+[
+  {{
+    "question_text": "...",
+    "options": ["option A", "option B", "option C", "option D"],
+    "correct_index": 0,
+    "explanation": "..."
+  }}
+]
+"""
+
 
 def get_or_generate_questions(
     db: Session,
     topic: LearningTopic,
     skill_name: str,
-    count: int = 15,
+    count: int = 10,
     force_regenerate: bool = False,
 ) -> tuple[list[LearningQuestion], str]:
     """
@@ -169,9 +204,42 @@ def get_or_generate_questions(
         item for item in _prepare_questions(questions_data, count=count)
         if _dedupe_key(item["question_text"]) not in existing_keys
     ]
+    cleaned_questions = _filter_against_existing_questions(
+        candidates=cleaned_questions,
+        existing_texts=[item.question_text for item in existing],
+        limit=count,
+    )
 
-    if not cleaned_questions and not existing:
+    if not questions_data and not existing:
         raise RuntimeError("LLM returned invalid JSON for questions")
+
+    for attempt in range(2):
+        missing_count = count - len(existing) - len(cleaned_questions)
+        if missing_count <= 0:
+            break
+
+        print(f"[LEARN] Need {missing_count} more questions → requesting alternatives (attempt {attempt + 1})")
+        accepted_texts = [
+            *[item.question_text for item in existing],
+            *[item["question_text"] for item in cleaned_questions],
+        ]
+        alternative_items = _generate_alternative_questions(
+            topic=topic,
+            skill_name=skill_name,
+            accepted_questions=accepted_texts,
+            needed_count=missing_count,
+        )
+        alternative_questions = _prepare_questions(
+            alternative_items,
+            count=missing_count + 8,
+        )
+        additions = _filter_against_existing_questions(
+            candidates=alternative_questions,
+            existing_texts=accepted_texts,
+            limit=missing_count,
+        )
+        cleaned_questions.extend(additions)
+
     if len(existing) + len(cleaned_questions) < count:
         raise RuntimeError("Generated quiz questions were too repetitive, generic, or malformed. Please try again.")
 
@@ -200,6 +268,45 @@ def get_or_generate_questions(
     combined = [*existing, *saved]
     print(f"[LEARN] Saved {len(saved)} questions for topic_id={topic.id}")
     return combined[:count], "regenerated" if force_regenerate else "generated"
+
+
+def _generate_alternative_questions(
+    topic: LearningTopic,
+    skill_name: str,
+    accepted_questions: list[str],
+    needed_count: int,
+) -> list[dict]:
+    accepted_block = "\n".join(
+        f"- {question}" for question in accepted_questions[:20]
+    ) or "- None yet"
+    prompt = QUESTION_ALTERNATIVES_PROMPT.format(
+        skill_name=skill_name,
+        topic_title=topic.title,
+        level=topic.level,
+        description=topic.description or topic.title,
+        accepted_questions=accepted_block,
+        candidate_count=max(needed_count + 8, 10),
+    )
+
+    try:
+        raw = generate_llm_response(prompt, json_mode=True)
+    except Exception as e:
+        print(f"[LEARN] Alternative question generation failed: {e}")
+        return []
+
+    parsed = _parse_questions_json(raw)
+    if parsed:
+        return parsed
+
+    try:
+        repaired = generate_llm_response(
+            QUESTION_REPAIR_PROMPT.format(raw=raw[:12000])
+        )
+    except Exception as e:
+        print(f"[LEARN] Alternative repair pass failed: {e}")
+        return []
+
+    return _parse_questions_json(repaired)
 
 
 def _parse_questions_json(raw: str) -> list[dict]:
@@ -641,6 +748,51 @@ def _looks_like_generic_question(text: str) -> bool:
     return any(re.search(pattern, lowered) for pattern in generic_patterns)
 
 
+def _is_too_similar_to_questions(
+    question_text: str,
+    accepted_texts: list[str],
+    threshold: float = 0.72,
+) -> bool:
+    current_tokens = set(_dedupe_key(question_text).split())
+    if not current_tokens:
+        return True
+
+    for accepted_text in accepted_texts:
+        accepted_tokens = set(_dedupe_key(accepted_text).split())
+        union = len(current_tokens | accepted_tokens) or 1
+        overlap = len(current_tokens & accepted_tokens)
+        if overlap / union >= threshold:
+            return True
+
+    return False
+
+
+def _filter_against_existing_questions(
+    candidates: list[dict],
+    existing_texts: list[str],
+    limit: int,
+) -> list[dict]:
+    accepted_texts = list(existing_texts)
+    accepted_keys = {_dedupe_key(text) for text in accepted_texts}
+    filtered = []
+
+    for item in candidates:
+        question_text = item["question_text"]
+        question_key = _dedupe_key(question_text)
+        if question_key in accepted_keys:
+            continue
+        if _is_too_similar_to_questions(question_text, accepted_texts):
+            continue
+
+        filtered.append(item)
+        accepted_texts.append(question_text)
+        accepted_keys.add(question_key)
+        if len(filtered) >= limit:
+            break
+
+    return filtered
+
+
 def _sanitize_question_item(item: dict) -> dict | None:
     if not isinstance(item, dict):
         return None
@@ -684,17 +836,10 @@ def _prepare_questions(raw_items: list[dict], count: int) -> list[dict]:
         if question_key in seen_questions:
             continue
 
-        # Reject questions that are too close to already accepted ones.
-        current_tokens = set(question_key.split())
-        too_similar = False
-        for accepted in prepared:
-            accepted_tokens = set(_dedupe_key(accepted["question_text"]).split())
-            overlap = len(current_tokens & accepted_tokens)
-            union = len(current_tokens | accepted_tokens) or 1
-            if overlap / union >= 0.72:
-                too_similar = True
-                break
-        if too_similar:
+        if _is_too_similar_to_questions(
+            item["question_text"],
+            [accepted["question_text"] for accepted in prepared],
+        ):
             continue
 
         if _looks_like_generic_question(item["question_text"]) and len(prepared) >= max(4, count // 3):

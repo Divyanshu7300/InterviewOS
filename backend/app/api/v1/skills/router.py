@@ -133,7 +133,7 @@ def get_questions(
     # Token sirf tab check/record karo jab LLM actually call hua ho
     if source == "generated" and user_id:
         # Questions already generate ho gaye — sirf record karo
-        # estimate: 15 questions * ~200 tokens each
+        # estimate: 10 questions * ~200 tokens each
         from app.api.v1.token.service import record_token_usage
         record_token_usage(
             db=db,

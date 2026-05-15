@@ -28,7 +28,7 @@ export default function QuizPage() {
   useEffect(() => {
     if (!topicId) return;
     const uid = user?.id ? parseInt(user.id) : null;
-    api.post(`/learn/topics/${topicId}/questions`, null, { params: { count: 15, ...(uid && { user_id: uid }) } })
+    api.post(`/learn/topics/${topicId}/questions`, null, { params: { count: 10, ...(uid && { user_id: uid }) } })
       .then((r) => setQuizData(r.data))
       .catch((err) => {
         const d = err.response?.data?.detail;
