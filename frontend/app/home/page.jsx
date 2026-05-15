@@ -305,7 +305,7 @@ export default function HomePage() {
                   <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--text-muted)]">
                     Momentum cue
                   </p>
-                  <h3 className="mt-3 text-xl font-bold text-[var(--text-primary)]">Fix one gap at a time</h3>
+                  <h3 className="mt-3 text-[var(--text-primary)]">Fix one gap at a time</h3>
                 </div>
               }
             >

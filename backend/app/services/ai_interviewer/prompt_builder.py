@@ -168,7 +168,7 @@ def build_followup_prompt(
     if history:
         history_text = "\n".join(
             f'{"Interviewer" if item["role"] == "assistant" else "Candidate"}: {item["content"]}'
-            for item in history[-6:]
+            for item in history[-10:]
         )
 
     return f"""You are an adaptive AI interviewer for the role "{role_title}".
@@ -197,6 +197,8 @@ Rules:
 - Ask exactly one question.
 - Make it feel like a natural follow-up to the candidate's previous answer.
 - Probe either a gap, a tradeoff, an edge case, or a concrete implementation detail.
+- Do not repeat previous questions or already covered basic topics.
+- Prefer uncovered topics, or go deeper on weak areas.
 - Respect the candidate guidance while still testing the role comprehensively.
 - If the candidate was weak, narrow the scope and test fundamentals.
 - If the candidate was strong, increase difficulty with deeper reasoning or system implications.

@@ -5,7 +5,7 @@ from app.api.v1.community.schema import CommentCreate
 
 def get_all_comments(db: Session) -> list:
     """
-    Fetch only top-level comments with nested replies.
+    Fetch only top level comments with nested replies
     """
 
     comments = (
@@ -26,7 +26,7 @@ def get_all_comments(db: Session) -> list:
 
 def create_comment(db: Session, data: CommentCreate) -> Comment:
     """
-    Create a new comment or reply.
+    Create a new comment or reply
     """
 
     # validate parent comment if reply
@@ -54,7 +54,7 @@ def create_comment(db: Session, data: CommentCreate) -> Comment:
 
 def like_comment(db: Session, comment_id: int) -> Comment:
     """
-    Increment like count of a comment.
+    Increment like count of a comment
     """
 
     comment = db.query(Comment).filter(Comment.id == comment_id).first()

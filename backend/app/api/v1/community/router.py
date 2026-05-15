@@ -16,17 +16,13 @@ router = APIRouter(prefix="/community", tags=["community"])
 
 @router.get("/comments", response_model=List[CommentResponse])
 def get_comments(db: Session = Depends(get_db)):
-    """
-    Saare top-level comments fetch karo with nested replies.
-    """
     return get_all_comments(db)
 
 
 @router.post("/comments", response_model=CommentResponse)
 def post_comment(data: CommentCreate, db: Session = Depends(get_db)):
     """
-    Naya comment post karo.
-    parent_id do toh reply hoga, warna top-level comment.
+    Naya comment post 
     """
     try:
         return create_comment(db, data)
@@ -37,7 +33,7 @@ def post_comment(data: CommentCreate, db: Session = Depends(get_db)):
 @router.post("/comments/{comment_id}/like", response_model=CommentResponse)
 def like(comment_id: int, db: Session = Depends(get_db)):
     """
-    Comment ko like karo.
+    Comment like 
     """
     try:
         return like_comment(db, comment_id)
@@ -52,7 +48,7 @@ def delete(
     db: Session = Depends(get_db)
 ):
     """
-    Apna comment delete karo.
+    comment delete 
     """
     try:
         delete_comment(db, comment_id, user_name)

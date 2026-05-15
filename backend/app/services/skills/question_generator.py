@@ -24,7 +24,13 @@ Generate exactly {candidate_count} MCQ questions for this topic.
 
 Rules:
 - Questions must be specific to "{topic_title}"
+- Do not generate broad questions about the whole skill unless they directly test "{topic_title}"
+- Do not pull in sibling topics from {skill_name}; stay inside the selected topic
 - Level appropriate: {level} means {level_desc}
+- For a 15-question quiz, cover the selected topic with a balanced spread:
+  - 5 fundamentals/definitions
+  - 5 applied scenario questions
+  - 5 common mistakes, edge cases, or interview-style reasoning questions
 - Focus on one concrete concept per question
 - Each question has exactly 4 options
 - Only one correct answer per question
@@ -33,6 +39,8 @@ Rules:
 - Do not ask the same concept twice in different wording
 - Avoid malformed wording, awkward grammar, and copy-paste patterns
 - Avoid overusing templates like "Which of the following..."
+- Prefer applied, scenario-based questions with realistic distractors
+- Avoid obviously unrelated distractors such as typing speed, screen brightness, browser themes, operating systems, or random tools
 - Include a brief explanation for the correct answer
 - No repeated questions
 
@@ -70,10 +78,15 @@ Generate quiz questions for this topic and return ONLY a JSON object in this sha
 Requirements:
 - Create exactly {candidate_count} questions
 - Questions must be specific to "{topic_title}"
+- Do not generate broad questions about the whole skill unless they directly test "{topic_title}"
+- Do not pull in sibling topics from {skill_name}; stay inside the selected topic
 - Level appropriate: {level} means {level_desc}
+- For a 15-question quiz, cover the selected topic with a balanced spread: 5 fundamentals, 5 applied scenarios, and 5 common mistakes/edge cases/interview reasoning questions
 - Avoid repeated or generic questions
 - Each question must have exactly 4 distinct options
 - Only one correct answer per question
+- Prefer applied, scenario-based questions with realistic distractors
+- Avoid obviously unrelated distractors such as typing speed, screen brightness, browser themes, operating systems, or random tools
 """
 
 LEVEL_DESCRIPTIONS = {
@@ -122,6 +135,13 @@ def get_or_generate_questions(
         db.commit()
         existing = []
 
+    if existing and _has_fallback_question_batch(existing, count=count):
+        print(f"[LEARN] Generic fallback cache detected → regenerating topic_id={topic.id}")
+        for item in existing:
+            db.delete(item)
+        db.commit()
+        existing = []
+
     if len(existing) >= count:
         print(f"[LEARN] Cache hit → topic_id={topic.id}, {len(existing)} questions")
         return existing[:count], "cache"
@@ -135,7 +155,7 @@ def get_or_generate_questions(
         level=topic.level,
         description=topic.description or topic.title,
         count=count,
-        candidate_count=count + 8,
+        candidate_count=count + 15,
         level_desc=LEVEL_DESCRIPTIONS.get(topic.level, "general"),
     )
 
@@ -150,22 +170,10 @@ def get_or_generate_questions(
         if _dedupe_key(item["question_text"]) not in existing_keys
     ]
 
-    if len(existing) + len(cleaned_questions) < count:
-        fallback_questions = _build_fallback_questions(topic=topic, skill_name=skill_name, count=count)
-        seen_keys = existing_keys | {_dedupe_key(item["question_text"]) for item in cleaned_questions}
-        for fallback in fallback_questions:
-            fallback_key = _dedupe_key(fallback["question_text"])
-            if fallback_key in seen_keys:
-                continue
-            cleaned_questions.append(fallback)
-            seen_keys.add(fallback_key)
-            if len(existing) + len(cleaned_questions) >= count:
-                break
-
     if not cleaned_questions and not existing:
         raise RuntimeError("LLM returned invalid JSON for questions")
     if len(existing) + len(cleaned_questions) < count:
-        raise RuntimeError("Generated quiz questions were too repetitive or malformed")
+        raise RuntimeError("Generated quiz questions were too repetitive, generic, or malformed. Please try again.")
 
     # ── Step 4: DB mein save karo ─────────────────────────────────────────────
     saved = []
@@ -558,6 +566,44 @@ def _dedupe_key(text: str) -> str:
     normalized = _normalize_text(text).lower()
     normalized = re.sub(r"[^a-z0-9\s]", "", normalized)
     return normalized
+
+
+def _looks_like_fallback_question(text: str) -> bool:
+    fallback_patterns = [
+        r"best describes the core idea of",
+        r"when working with .* what should you focus on first",
+        r"reasonable beginner approach to learn",
+        r"in interviews questions on .* usually test",
+        r"common mistake while answering questions about",
+        r"habit is most useful when improving at",
+        r"makes an answer about .* stronger in an interview",
+        r"scenario best shows applied understanding of",
+        r"why do interviewers ask topic-specific questions on",
+        r"answer style is weakest for a question on",
+        r"what should you do if a question on .* includes an unfamiliar edge case",
+        r"best reflects production thinking for",
+        r"when revising .* what helps retention most",
+        r"clearest way to explain .* to an interviewer",
+        r"mistake can make a response on .* sound shallow",
+        r"best milestone in",
+        r"separates intermediate understanding of .* from beginner understanding",
+        r"signal most strongly suggests you understand",
+        r"best way to recover if you get stuck on",
+        r"improve your performance on future questions about",
+    ]
+    lowered = _dedupe_key(text)
+    return any(re.search(pattern, lowered) for pattern in fallback_patterns)
+
+
+def _has_fallback_question_batch(questions: list[LearningQuestion], count: int) -> bool:
+    if not questions:
+        return False
+
+    fallback_count = sum(
+        1 for question in questions
+        if _looks_like_fallback_question(question.question_text)
+    )
+    return fallback_count >= max(3, count // 4)
 
 
 def _is_distorted_text(text: str) -> bool:
